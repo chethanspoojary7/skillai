@@ -18,7 +18,7 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold">Department directory</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-4 gap-3">
         {departments.map(d => { const ts = tasks.filter(t => t.departmentId === d.id); const done = ts.filter(t => t.status === 'Completed').length; const rate = ts.length ? Math.round(done / ts.length * 100) : 0; return (
           <Card key={d.id} className="p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h3 className="truncate text-sm font-semibold">{d.name}</h3><p className="truncate text-xs text-slate-500">Head: {staff.find(s => s.id === d.headId)?.name}</p></div><span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-bold text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">{d.short}</span></div>
           <div className="mt-3 grid grid-cols-3 gap-1 text-center"><div><p className="text-sm font-bold">{staff.filter(s => s.departmentId === d.id).length}</p><p className="text-[10px] text-slate-500">Staff</p></div><div><p className="text-sm font-bold">{ts.length}</p><p className="text-[10px] text-slate-500">Tasks</p></div><div><p className="text-sm font-bold">{rate}%</p><p className="text-[10px] text-slate-500">Complete</p></div></div>

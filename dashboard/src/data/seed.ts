@@ -1,11 +1,9 @@
 import type { Approval, ActivityItem, Department, NotificationItem, Staff, Task } from '../types'
 export const departments: Department[] = [
-  { id: 'D01', name: 'Computer Science', short: 'CS', headId: 'S01', students: 642, target: 92, achievement: 89, budget: 4200000, spent: 3180000 },
-  { id: 'D02', name: 'Mathematics', short: 'MA', headId: 'S05', students: 388, target: 90, achievement: 93, budget: 1800000, spent: 1210000 },
-  { id: 'D03', name: 'Physics', short: 'PH', headId: 'S09', students: 341, target: 88, achievement: 84, budget: 2600000, spent: 2090000 },
-  { id: 'D04', name: 'Commerce & Management', short: 'CM', headId: 'S13', students: 517, target: 90, achievement: 87, budget: 2100000, spent: 1450000 },
-  { id: 'D05', name: 'Humanities', short: 'HU', headId: 'S17', students: 402, target: 86, achievement: 91, budget: 1500000, spent: 980000 },
-  { id: 'D06', name: 'Life Sciences', short: 'LS', headId: 'S21', students: 296, target: 88, achievement: 82, budget: 2300000, spent: 1870000 },
+  { id: 'D01', name: 'AI', short: 'AI', headId: 'S01', students: 642, target: 92, achievement: 89, budget: 4200000, spent: 3180000 },
+  { id: 'D02', name: 'MANAGEMENT', short: 'MGMT', headId: 'S05', students: 388, target: 90, achievement: 93, budget: 1800000, spent: 1210000 },
+  { id: 'D03', name: 'UG & PG', short: 'UGPG', headId: 'S09', students: 341, target: 88, achievement: 84, budget: 2600000, spent: 2090000 },
+  { id: 'D04', name: 'MULTIMEDIA', short: 'MM', headId: 'S13', students: 517, target: 90, achievement: 87, budget: 2100000, spent: 1450000 },
 ]
 export const staff: Staff[] = [
   { id: 'S01', name: 'Dr. Ananya Rao', designation: 'Head, Computer Science', departmentId: 'D01', email: 'ananya.rao@demo.institute', phone: '—', tasksAssigned: 14, tasksCompleted: 11, onTime: 88, attendance: 96, goal: 89, quality: 92, workload: 'Heavy' },

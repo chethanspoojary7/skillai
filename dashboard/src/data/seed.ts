@@ -62,9 +62,8 @@ export const approvals: Approval[] = [
   ap('REQ-1022', 'New classroom furniture', 'Purchase and Procurement', 'Dr. Meera Joshi', 'S13', 'D04', '2026-09-16', 'Medium', 'Rejected', 390000, 'Furniture for two new classrooms.', 'Deferred to the next capital budget cycle.'),
 ]
 const tk = (id: string, title: string, category: string, dept: string, resp: string, team: string[], priority: Task['priority'], status: Task['status'], start: string, due: string, progress: number, desc: string, outcome: string): Task => ({
-  id, title, category, departmentId: dept, responsibleId: resp, teamIds: team, priority, status, startDate: start, dueDate: due, progress, description: desc, outcome, instructions: 'Follow the institute checklist, keep the director informed of blockers, and file evidence before marking for review.',
-  subtasks: [{ id: id + '-a', title: 'Prepare plan and checklist', done: progress >= 30 }, { id: id + '-b', title: 'Complete main deliverable', done: progress >= 70 }, { id: id + '-c', title: 'Review and file evidence', done: progress >= 100 }],
-  milestones: ['Plan approved', 'Draft ready', 'Final submission'], dependencies: [], attachments: ['Checklist (demo).pdf'], notes: '', comments: [], createdAt: start,
+  id, title, category, departmentId: dept, responsibleId: resp, teamIds: team, priority, status, startDate: start, dueDate: due, dueTime: '17:00', progress, description: desc, outcome, instructions: 'Follow the institute checklist, keep the director informed of blockers, and file evidence before marking for review.',
+  dependencies: [], attachments: ['Checklist (demo).pdf'], notes: '', comments: [], createdAt: start,
 })
 export const tasks: Task[] = [
   tk('TSK-210', 'Accreditation evidence file — Criterion 3', 'Quality Assurance', 'D01', 'S01', ['S02', 'S03'], 'Critical', 'In Progress', '2026-10-20', '2026-11-20', 62, 'Compile teaching-learning evidence, course files and outcome records for the accreditation visit.', 'Complete evidence file accepted by the IQAC.'),

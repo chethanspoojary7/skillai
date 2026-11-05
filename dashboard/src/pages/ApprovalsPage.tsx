@@ -6,14 +6,30 @@ import { departments } from '../data/seed'
 import { CATEGORIES } from '../types'
 import type { Approval, ApprovalStatus } from '../types'
 import { fmt, money, downloadCsv, downloadText } from '../utils'
-import { Badge, Btn, Card, Confirm, Empty, Field, Modal, Pagination, SearchInput, inputCls, priorityTone, statusTone } from '../components/ui'
+import { Badge, Btn, Card, DropdownSelect, Empty, Field, Modal, Pagination, RecordRow, SearchInput, inputCls, priorityTone, statusTone } from '../components/ui'
 type SortKey = 'date' | 'title' | 'priority'
+const priorityOptions = [
+  { value: 'All', label: 'All priorities' },
+  { value: 'Urgent', label: 'Urgent (High or Critical)' },
+  { value: 'Critical', label: 'Critical' },
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' },
+  { value: 'WaitingOverWeek', label: 'Waiting over a week' },
+]
 export default function ApprovalsPage() {
-  const { approvals, decideApproval, bulkApprove, toast, addNotification } = useApp()
+  const { approvals, decideApproval, toast, addNotification } = useApp()
   const [params, setParams] = useSearchParams()
-  const [q, setQ] = useState(''); const [cat, setCat] = useState('All'); const [dept, setDept] = useState('All'); const [status, setStatus] = useState(params.get('status') || 'All'); const [prio, setPrio] = useState('All'); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
+  const [q, setQ] = useState(''); const [cat, setCat] = useState('All'); const [dept, setDept] = useState('All'); const [status, setStatus] = useState(params.get('status') || 'All'); const [prio, setPrio] = useState(params.get('priority') || (params.get('waiting') === 'week' ? 'WaitingOverWeek' : 'All')); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
   const [sort, setSort] = useState<SortKey>('date'); const [page, setPage] = useState(1); const [size, setSize] = useState(10)
-  const [selected, setSelected] = useState<string[]>([]); const [detail, setDetail] = useState<Approval | null>(null); const [action, setAction] = useState<{ kind: ApprovalStatus; note: string } | null>(null); const [bulkConfirm, setBulkConfirm] = useState(false)
+  const [detail, setDetail] = useState<Approval | null>(null); const [action, setAction] = useState<{ kind: ApprovalStatus; note: string } | null>(null)
+  useEffect(() => {
+    const requestedDept = params.get('dept')
+    setDept(requestedDept && departments.some(department => department.id === requestedDept) ? requestedDept : 'All')
+    setStatus(params.get('status') || 'All')
+    setPrio(params.get('priority') || (params.get('waiting') === 'week' ? 'WaitingOverWeek' : 'All'))
+    setPage(1)
+  }, [params])
   useEffect(() => { const open = params.get('open'); if (open) { const a = approvals.find(x => x.id === open); if (a) setDetail(a) } }, [params, approvals])
   const deptName = (id: string) => departments.find(d => d.id === id)?.name || id
   const filtered = useMemo(() => {
@@ -23,7 +39,9 @@ export default function ApprovalsPage() {
     if (cat !== 'All') list = list.filter(a => a.category === cat)
     if (dept !== 'All') list = list.filter(a => a.departmentId === dept)
     if (status !== 'All') list = list.filter(a => a.status === status)
-    if (prio !== 'All') list = list.filter(a => a.priority === prio)
+    if (prio === 'Urgent') list = list.filter(a => a.status === 'Pending' && (a.priority === 'Critical' || a.priority === 'High'))
+    else if (prio === 'WaitingOverWeek') list = list.filter(a => a.status === 'Pending' && (Date.now() - new Date(`${a.date}T00:00:00`).getTime()) / 86400000 > 7)
+    else if (prio !== 'All') list = list.filter(a => a.priority === prio)
     if (from) list = list.filter(a => a.date >= from)
     if (to) list = list.filter(a => a.date <= to)
     const prioRank: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 }
@@ -48,18 +66,18 @@ export default function ApprovalsPage() {
         {([['Pending', stats('Pending')], ['Approved', stats('Approved')], ['Rejected', stats('Rejected')], ['Returned for Correction', stats('Returned')], ['Urgent Requests', approvals.filter(a => a.status === 'Pending' && (a.priority === 'Critical' || a.priority === 'High')).length]] as [string, number][]).map(([label, v]) => <Card key={label as string} className="p-2.5"><p className="text-xs leading-tight text-slate-500">{label}</p><p className="mt-1 text-xl font-bold">{v}</p></Card>)}
       </div>
       <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">Approval requests</h3><div className="flex gap-2"><Btn variant="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</Btn>{selected.length > 0 && <Btn onClick={() => setBulkConfirm(true)}>Approve selected ({selected.length})</Btn>}</div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">Approval requests</h3><div className="flex gap-2"><Btn variant="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</Btn></div></div>
         <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           <SearchInput value={q} onChange={v => { setQ(v); setPage(1) }} placeholder="Search ID, title, applicant…" />
-          <select aria-label="Filter by approval category" value={cat} onChange={e => setCat(e.target.value)} className={inputCls}><option value="All">All categories</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select>
-          <select value={dept} onChange={e => setDept(e.target.value)} className={inputCls}><option value="All">All departments</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-          <select aria-label="Filter by approval status" value={status} onChange={e => setStatus(e.target.value)} className={inputCls}><option value="All">All statuses</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Returned</option></select>
-          <select aria-label="Filter by priority" value={prio} onChange={e => setPrio(e.target.value)} className={inputCls}><option value="All">All priorities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+          <DropdownSelect ariaLabel="Filter by approval category" value={cat} onChange={setCat} options={[{ value: 'All', label: 'All categories' }, ...CATEGORIES.map(category => ({ value: category, label: category }))]} />
+          <DropdownSelect ariaLabel="Filter by department" value={dept} onChange={setDept} options={[{ value: 'All', label: 'All departments' }, ...departments.map(department => ({ value: department.id, label: department.name }))]} />
+          <DropdownSelect ariaLabel="Filter by approval status" value={status} onChange={setStatus} options={[{ value: 'All', label: 'All statuses' }, ...['Pending', 'Approved', 'Rejected', 'Returned'].map(item => ({ value: item, label: item }))]} />
+          <DropdownSelect ariaLabel="Filter by priority" value={prio} onChange={value => { setPrio(value); setPage(1) }} options={priorityOptions} />
           <div className="flex gap-2"><input type="date" value={from} onChange={e => setFrom(e.target.value)} className={inputCls} aria-label="From date" /><input type="date" value={to} onChange={e => setTo(e.target.value)} className={inputCls} aria-label="To date" /></div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm"><span>Sort:</span>{(['date', 'title', 'priority'] as SortKey[]).map(k => <button key={k} onClick={() => setSort(k)} className={`rounded-full px-3 py-1 capitalize ${sort === k ? 'bg-[#0F2A4A] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>{k}</button>)}<button onClick={reset} className="font-medium text-blue-700">Reset filters</button><span className="ml-auto">Page size: <select value={size} onChange={e => { setSize(Number(e.target.value)); setPage(1) }} className="rounded-lg border px-2 py-1 dark:bg-slate-800"><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option></select></span></div>
-        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-2"><input type="checkbox" aria-label="Select all pending on page" checked={pageItems.filter(a => a.status === 'Pending').length > 0 && pageItems.filter(a => a.status === 'Pending').every(a => selected.includes(a.id))} onChange={e => { const ids = pageItems.filter(a => a.status === 'Pending').map(a => a.id); setSelected(e.target.checked ? [...new Set([...selected, ...ids])] : selected.filter(x => !ids.includes(x))) }} /></th><th>ID</th><th>Title</th><th>Category</th><th>Applicant</th><th>Department</th><th>Date</th><th>Priority</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {pageItems.map(a => <tr key={a.id} className={`border-t border-slate-100 dark:border-slate-800 ${a.priority === 'Critical' && a.status === 'Pending' ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}><td><input type="checkbox" disabled={a.status !== 'Pending'} checked={selected.includes(a.id)} onChange={e => setSelected(e.target.checked ? [...selected, a.id] : selected.filter(x => x !== a.id))} aria-label={`Select ${a.id}`} /></td><td className="py-3 font-medium">{a.id}</td><td><button className="text-left font-medium text-blue-700 hover:underline" onClick={() => setDetail(a)}>{a.title}</button>{a.awaitingInfo && <span className="ml-2 text-xs text-amber-600">· Awaiting info</span>}</td><td>{a.category}</td><td>{a.applicant}</td><td>{deptName(a.departmentId)}</td><td>{fmt(a.date)}</td><td><Badge text={a.priority} tone={priorityTone(a.priority)} /></td><td>{a.amount ? money(a.amount) : '—'}</td><td><Badge text={a.status} tone={statusTone(a.status)} /></td><td><Btn variant="ghost" className="px-2 py-1" onClick={() => setDetail(a)}>Review</Btn></td></tr>)}
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm"><span>Sort:</span>{(['date', 'title', 'priority'] as SortKey[]).map(k => <button key={k} onClick={() => setSort(k)} className={`rounded-full px-3 py-1 capitalize ${sort === k ? 'bg-[#0F2A4A] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>{k}</button>)}<button onClick={reset} className="font-medium text-blue-700">Reset filters</button><span className="ml-auto flex items-center gap-2">Page size: <DropdownSelect ariaLabel="Page size" value={String(size)} onChange={value => { setSize(Number(value)); setPage(1) }} options={[5, 10, 20].map(value => ({ value: String(value), label: String(value) }))} className="page-size-dropdown" /></span></div>
+        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[850px] text-sm"><thead><tr className="text-left text-xs uppercase text-slate-500"><th className="py-2">ID</th><th>Title</th><th>Category</th><th>Applicant</th><th>Department</th><th>Date</th><th>Priority</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+          {pageItems.map(a => <RecordRow key={a.id} label={`Review approval ${a.id}, ${a.title}`} onActivate={() => setDetail(a)} className={`border-t border-slate-100 dark:border-slate-800 ${a.priority === 'Critical' && a.status === 'Pending' ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}><td className="py-3 font-medium">{a.id}</td><td className="font-medium">{a.title}{a.awaitingInfo && <span className="ml-2 text-xs font-normal text-amber-600">· Awaiting info</span>}</td><td>{a.category}</td><td>{a.applicant}</td><td>{deptName(a.departmentId)}</td><td>{fmt(a.date)}</td><td><Badge text={a.priority} tone={priorityTone(a.priority)} /></td><td>{a.amount ? money(a.amount) : '—'}</td><td><Badge text={a.status} tone={statusTone(a.status)} /></td></RecordRow>)}
         </tbody></table></div>
         {filtered.length === 0 ? <div className="mt-4"><Empty title="No approvals match these filters" text="Try clearing a filter or searching a different term." /></div> : <div className="mt-4 flex justify-end"><Pagination page={page} pages={pages} onPage={setPage} total={filtered.length} /></div>}
       </Card>
@@ -78,7 +96,6 @@ export default function ApprovalsPage() {
           </div> : <p className="rounded-xl bg-slate-50 p-3 text-slate-600 dark:bg-slate-800 dark:text-slate-300">This request has been finalised as <strong>{detail.status}</strong> and can no longer be actioned. It will not appear in the pending list.</p>}
         </div>}
       </Modal>
-      <Confirm open={bulkConfirm} onClose={() => setBulkConfirm(false)} title="Approve selected requests?" text={`This will approve ${selected.length} pending request(s). This action is recorded in the activity log.`} confirmLabel="Approve all" onConfirm={() => { bulkApprove(selected); toast('success', `${selected.length} request(s) approved.`); setSelected([]) }} />
     </div>
   )
 }

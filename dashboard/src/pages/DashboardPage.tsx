@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, ArrowUpRight, BarChart3, CalendarDays, CheckSquare,
-  ClipboardList, Clock3, FileText, Plus, Target, TrendingUp,
+  ClipboardList, FileText, Plus, TrendingUp,
 } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie,
@@ -10,7 +10,7 @@ import {
 import { useApp } from '../store/AppContext'
 import { departments, events, monthlyTrend, staff } from '../data/seed'
 import { fmt, isOverdue, money } from '../utils'
-import { Badge, Btn, Card, Progress, priorityTone, statusTone } from '../components/ui'
+import { Badge, Btn, Card, DoubleClickAction, Progress, RecordRow, RecordSurface, priorityTone, statusTone } from '../components/ui'
 
 const chartColors = ['#8884f2', '#62b879', '#f28b97', '#e9a057', '#65a6c5']
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -18,7 +18,7 @@ const dateOnly = (value: string) => new Date(`${value}T00:00:00`)
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 export default function DashboardPage() {
-  const { approvals, tasks, activity, settings } = useApp()
+  const { approvals, tasks, activity, profile, settings } = useApp()
   const navigate = useNavigate()
   const now = new Date()
   const today = startOfDay(now)
@@ -48,17 +48,6 @@ export default function DashboardPage() {
   const achievement = departments.length
     ? Math.round(departments.reduce((sum, department) => sum + department.achievement, 0) / departments.length)
     : 0
-  const studentPopulation = departments.reduce((sum, department) => sum + department.students, 0)
-  const finalizedApprovals = approvals.flatMap(approval => {
-    if (approval.status !== 'Approved' && approval.status !== 'Rejected') return []
-    const finished = [...approval.history].reverse().find(item => item.action === approval.status)
-    if (!finished) return []
-    const days = (dateOnly(finished.date).getTime() - dateOnly(approval.date).getTime()) / 86400000
-    return days >= 0 ? [days] : []
-  })
-  const averageTurnaround = finalizedApprovals.length
-    ? finalizedApprovals.reduce((sum, days) => sum + days, 0) / finalizedApprovals.length
-    : 0
   const completionRate = tasks.length
     ? Math.round(tasks.filter(task => task.status === 'Completed').length / tasks.length * 100)
     : 0
@@ -84,8 +73,6 @@ export default function DashboardPage() {
     { label: 'Active Tasks', value: active.length, note: `${awaitingReview.length} awaiting review`, icon: ClipboardList, color: 'green', to: '/tasks' },
     { label: 'Overdue Tasks', value: overdue.length, note: 'Needs attention', icon: AlertTriangle, color: 'coral', to: '/tasks?overdue=1' },
     { label: 'Completed This Month', value: completedThisMonth, note: 'Based on activity records', icon: TrendingUp, color: 'orange', to: '/tasks?status=Completed' },
-    { label: 'Institute Target Achievement', value: `${achievement}%`, note: `${studentPopulation.toLocaleString()} students`, icon: Target, color: 'violet', to: '/performance' },
-    { label: 'Avg. Approval Turnaround', value: `${averageTurnaround.toFixed(1)} days`, note: 'From finalized demo requests', icon: Clock3, color: 'green', to: '/approvals' },
   ]
 
   return (
@@ -93,7 +80,7 @@ export default function DashboardPage() {
       <header className="director-heading">
         <div>
           <span className="director-eyebrow">INSTITUTE OVERVIEW</span>
-          <h1>Welcome back, Director</h1>
+          <h1>Welcome back, {profile.name}</h1>
           <p>{settings.instituteName} <span>·</span> Academic year {settings.academicYear} <span>·</span> Demonstration data</p>
         </div>
         <div className="director-actions">
@@ -126,23 +113,23 @@ export default function DashboardPage() {
               <Link to="/approvals" className="director-view-link">View all <ArrowUpRight size={13} /></Link>
             </div>
             <div className="approval-highlights">
-              <span><strong>{pending.length}</strong> pending</span>
-              <span className="urgent"><strong>{urgent.length}</strong> urgent</span>
-              <span><strong>{pending.filter(item => (today.getTime() - dateOnly(item.date).getTime()) / 86400000 > 7).length}</strong> waiting over a week</span>
+              <DoubleClickAction label="view pending approvals" onActivate={() => navigate('/approvals?status=Pending')}><strong>{pending.length}</strong> pending</DoubleClickAction>
+              <DoubleClickAction label="view urgent pending approvals" className="urgent" onActivate={() => navigate('/approvals?status=Pending&priority=Urgent')}><strong>{urgent.length}</strong> urgent</DoubleClickAction>
+              <DoubleClickAction label="view pending approvals waiting over a week" onActivate={() => navigate('/approvals?status=Pending&priority=WaitingOverWeek')}><strong>{pending.filter(item => (today.getTime() - dateOnly(item.date).getTime()) / 86400000 > 7).length}</strong> waiting over a week</DoubleClickAction>
             </div>
             <div className="director-table-wrap">
               <table className="director-table">
                 <thead><tr><th>Request</th><th>Applicant</th><th>Department</th><th>Date</th><th>Priority</th><th>Status</th></tr></thead>
                 <tbody>
                   {pending.slice(0, 5).map(approval => (
-                    <tr key={approval.id}>
-                      <td><button className="director-record-link" onClick={() => navigate(`/approvals?open=${approval.id}`)}><strong>{approval.id}</strong><span>{approval.title}</span></button></td>
+                    <RecordRow key={approval.id} label={`Open approval ${approval.id}, ${approval.title}`} onActivate={() => navigate(`/approvals?open=${approval.id}`)}>
+                      <td><span className="director-record-action"><strong>{approval.id}</strong><span>{approval.title}</span></span></td>
                       <td>{approval.applicant}</td>
                       <td>{deptName(approval.departmentId)}</td>
                       <td>{fmt(approval.date)}</td>
                       <td><Badge text={approval.priority} tone={priorityTone(approval.priority)} /></td>
                       <td><Badge text={approval.status} tone={statusTone(approval.status)} /></td>
-                    </tr>
+                    </RecordRow>
                   ))}
                 </tbody>
               </table>
@@ -169,10 +156,12 @@ export default function DashboardPage() {
                     const deptTasks = tasks.filter(task => task.departmentId === department.id)
                     const complete = deptTasks.filter(task => task.status === 'Completed').length
                     const progress = deptTasks.length ? Math.round(complete / deptTasks.length * 100) : 0
-                    return <Link to={`/departments?dept=${department.id}`} className="department-load" key={department.id}>
-                      <span><strong>{department.short}</strong>{department.name}<small>{deptTasks.length} tasks</small></span>
-                      <Progress value={progress} />
-                    </Link>
+                    return                           <div className="department-load" key={department.id}>
+                            <RecordSurface label={`Open ${department.name} department analysis`} onActivate={() => navigate(`/performance/departments?dept=${department.id}`)} className="department-load">
+                              <div className="department-load-name"><strong>{department.short}</strong><span>{department.name}</span><small>{deptTasks.length} tasks</small></div>
+                              <Progress value={progress} />
+                            </RecordSurface>
+                          </div>
                   })}
                 </div>
               </div>
@@ -181,8 +170,7 @@ export default function DashboardPage() {
                 <ul className="recent-task-list">
                   {tasks.slice(0, 4).map(task => (
                     <li key={task.id}>
-                      <Link to={`/tasks?open=${task.id}`}><strong>{task.title}</strong><span>{staffName(task.responsibleId)} · {task.dueDate ? fmt(task.dueDate) : 'No due date'}</span></Link>
-                      <Badge text={task.status} tone={statusTone(task.status)} />
+                      <RecordSurface label={`Open task ${task.id}, ${task.title}`} onActivate={() => navigate(`/tasks?open=${task.id}`)} className="recent-task-link"><span className="recent-task-copy"><strong>{task.title}</strong><span>{staffName(task.responsibleId)} · {task.dueDate ? fmt(task.dueDate) : 'No due date'}</span></span><Badge text={task.status} tone={statusTone(task.status)} /></RecordSurface>
                     </li>
                   ))}
                 </ul>
@@ -252,8 +240,10 @@ export default function DashboardPage() {
             <ul className="director-events-list">
               {[...events].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map((event, index) => (
                 <li key={event.title}>
+                  <RecordSurface label={`Open task schedule for ${event.title}`} onActivate={() => navigate('/tasks')} className="dashboard-event-action">
                   <span className={`event-date-tile event-${index % 3}`}><strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString('en-IN', { month: 'short' })}</small></span>
-                  <Link to="/tasks"><strong>{event.title}</strong><span>{fmt(event.date)} · {event.time}</span></Link>
+                  <span className="dashboard-event-copy"><strong>{event.title}</strong><span>{fmt(event.date)} · {event.time}</span></span>
+                  </RecordSurface>
                 </li>
               ))}
             </ul>

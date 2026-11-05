@@ -4,12 +4,20 @@ import { activity as seedActivity, approvals as seedApprovals, notifications as 
 const KEY = 'idd-demo-v1'
 export interface Toast { id: number; kind: 'success' | 'error' | 'info'; text: string }
 interface State { approvals: Approval[]; tasks: Task[]; staff: Staff[]; notifications: NotificationItem[]; activity: ActivityItem[]; settings: Settings; profile: Profile; authed: boolean }
-const defaultSettings: Settings = { instituteName: 'Institute of Applied Sciences', academicYear: '2026–27', reportingPeriod: 'Monthly', theme: 'light', sidebar: 'expanded', density: 'comfortable', notifyApprovals: true, notifyDeadlines: true, notifyOverdue: true, notifyPerformance: true, rolePreview: 'Director' }
-const defaultProfile: Profile = { name: 'Dr. Rajesh Menon', designation: 'Director', email: 'director@demo.institute', phone: '+91 98765 00000 (demo)', office: "Director's Office, Main Block" }
+const defaultSettings: Settings = { instituteName: 'Institute of Applied Sciences', academicYear: '2026–27', reportingPeriod: 'Monthly', theme: 'light', sidebar: 'expanded', density: 'comfortable', notifyApprovals: true, notifyDeadlines: true, notifyOverdue: true, notifyPerformance: true }
+const defaultProfile: Profile = { name: 'Bavesh Suvarna', designation: 'Director', email: 'director@demo.institute', phone: '+91 98765 00000 (demo)', office: "Director's Office, Main Block" }
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) { const p = JSON.parse(raw); if (p && Array.isArray(p.approvals) && Array.isArray(p.tasks)) return { ...p, staff: Array.isArray(p.staff) ? p.staff : seedStaff, authed: false } }
+    if (raw) {
+      const p = JSON.parse(raw)
+      if (p && Array.isArray(p.approvals) && Array.isArray(p.tasks)) {
+        p.tasks.forEach((task: Task & { milestones?: string[]; subtasks?: unknown }) => { delete task.milestones; delete task.subtasks })
+        if (p.settings) delete p.settings.rolePreview
+        if (p.profile?.name === 'Dr. Rajesh Menon') p.profile.name = defaultProfile.name
+        return { ...p, staff: Array.isArray(p.staff) ? p.staff : seedStaff, authed: false }
+      }
+    }
   } catch {}
   return { approvals: seedApprovals, tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: false }
 }
@@ -21,7 +29,7 @@ interface Ctx extends State {
   upsertTask: (t: Task) => void; updateTask: (id: string, patch: Partial<Task>, note?: string) => void; deleteTask: (id: string) => void
   addNotification: (n: Omit<NotificationItem, 'id' | 'read'>) => void; markNotification: (id: string, read: boolean) => void; markAllNotifications: () => void; deleteNotification: (id: string) => void
   log: (a: Omit<ActivityItem, 'id' | 'date'>) => void
-  saveSettings: (s: Settings) => void; saveProfile: (p: Profile) => void; updateStaff: (id: string, patch: Partial<import('../types').Staff>) => void
+  saveSettings: (s: Settings) => void; saveProfile: (p: Profile) => void
   resetDemo: () => void
 }
 const C = createContext<Ctx | null>(null)
@@ -46,12 +54,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     upsertTask: (t) => setState(s => { const exists = s.tasks.some(x => x.id === t.id); return { ...s, tasks: exists ? s.tasks.map(x => x.id === t.id ? t : x) : [t, ...s.tasks], activity: [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: exists ? 'Updated task' : 'Created task', recordType: 'Task', recordId: t.id, description: t.title }, ...s.activity] } }),
     updateTask: (id, patch, note) => setState(s => { const old = s.tasks.find(t => t.id === id); if (!old) return s; const updated = { ...old, ...patch, comments: note ? [...old.comments, { author: 'Director', text: note, date: new Date().toISOString().slice(0, 10) }] : old.comments }; return { ...s, tasks: s.tasks.map(t => t.id === id ? updated : t), activity: patch.status && patch.status !== old.status ? [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: 'Changed task status', recordType: 'Task', recordId: id, description: old.title, from: old.status, to: patch.status }, ...s.activity] : s.activity } }),
     deleteTask: (id) => setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== id) })),
-    addNotification: (nn) => setState(s => ({ ...s, notifications: [{ id: 'N' + Date.now(), read: false, ...nn }, ...s.notifications] })),
+    addNotification: (nn) => setState(s => {
+      const enabled = nn.category === 'Approval' ? s.settings.notifyApprovals
+        : nn.category === 'Task' || nn.category === 'Deadline' ? s.settings.notifyDeadlines
+          : nn.category === 'Overdue' ? s.settings.notifyOverdue
+            : nn.category === 'Performance' ? s.settings.notifyPerformance
+              : true
+      return enabled ? { ...s, notifications: [{ id: 'N' + Date.now(), read: false, ...nn }, ...s.notifications] } : s
+    }),
     markNotification: (id, read) => setState(s => ({ ...s, notifications: s.notifications.map(x => x.id === id ? { ...x, read } : x) })),
     markAllNotifications: () => setState(s => ({ ...s, notifications: s.notifications.map(x => ({ ...x, read: true })) })),
     deleteNotification: (id) => setState(s => ({ ...s, notifications: s.notifications.filter(x => x.id !== id) })),
     log, saveSettings: (settings) => setState(s => ({ ...s, settings })), saveProfile: (profile) => setState(s => ({ ...s, profile })),
-    updateStaff: (id, patch) => setState(s => ({ ...s, staff: s.staff.map(x => x.id === id ? { ...x, ...patch } : x) })),
     resetDemo: () => { try { localStorage.removeItem(KEY) } catch {}; setState({ approvals: seedApprovals, tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: true }) },
   }), [state, toasts])
   return <C.Provider value={value}>{children}</C.Provider>

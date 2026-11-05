@@ -34,7 +34,7 @@ npm run preview
   printable summary. Finalised requests never return to the pending list.
 - **Task Management** — overview cards, create/edit form with validation
   (due date cannot precede start date, staff options follow the department),
-  subtasks and milestones, table / Kanban / calendar views, workflow
+  subtasks, table / Kanban / calendar views, workflow
   Not Started → In Progress → Submitted for Review → Completed, blocked
   tasks with a reason, overdue warnings (completed tasks are never overdue),
   comments, progress updates, duplicate, reassign, cancel with confirmation.

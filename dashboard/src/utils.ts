@@ -1,8 +1,8 @@
-import { format, parseISO, isBefore, startOfDay } from 'date-fns'
+import { format, parseISO, isBefore } from 'date-fns'
 export const fmt = (d: string) => { try { return format(parseISO(d), 'dd MMM yyyy') } catch { return d } }
 export const fmtDT = (d: string) => { try { return format(parseISO(d), 'dd MMM yyyy, hh:mm a') } catch { return d } }
 export const money = (n: number) => '₹' + n.toLocaleString('en-IN')
-export const isOverdue = (t: { dueDate: string; status: string }) => t.status !== 'Completed' && isBefore(startOfDay(parseISO(t.dueDate)), startOfDay(new Date()))
+export const isOverdue = (t: { dueDate: string; dueTime?: string; status: string }) => t.status !== 'Completed' && isBefore(parseISO(`${t.dueDate}T${t.dueTime || '23:59'}`), new Date())
 export function downloadCsv(filename: string, rows: (string | number)[][]) {
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

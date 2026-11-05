@@ -4,7 +4,6 @@ import DashboardPage from './pages/DashboardPage'
 import ApprovalsPage from './pages/ApprovalsPage'
 import TasksPage from './pages/TasksPage'
 import PerformancePage from './pages/PerformancePage'
-import InstitutePage from './pages/InstitutePage'
 import DepartmentsPage from './pages/DepartmentsPage'
 import ReportsPage from './pages/ReportsPage'
 import NotificationsPage from './pages/NotificationsPage'
@@ -19,7 +18,8 @@ export default function App() {
         <Route path="/approvals" element={<ApprovalsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/performance" element={<PerformancePage />} />
-        <Route path="/institute" element={<InstitutePage />} />
+        <Route path="/performance/:section" element={<PerformancePage />} />
+        <Route path="/institute" element={<Navigate to="/" replace />} />
         <Route path="/departments" element={<DepartmentsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />

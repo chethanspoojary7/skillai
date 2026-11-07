@@ -1,0 +1,77 @@
+.list {
+  position: relative;
+  display: flex;
+  width: var(--animated-list-width, 100%);
+  max-height: var(--animated-list-max-height, none);
+  flex-direction: column;
+  gap: var(--animated-list-gap, 0);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: var(--animated-list-radius, 9px);
+  overscroll-behavior: contain;
+  outline: none;
+  scrollbar-width: thin;
+}
+
+.list[data-scrollbar="hidden"] { scrollbar-width: none; }
+.list[data-scrollbar="hidden"]::-webkit-scrollbar { display: none; }
+.frame { border: 1px solid currentColor; }
+.list:focus-visible { outline: 2px solid var(--animated-list-accent, currentColor); outline-offset: 2px; }
+
+.item {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  min-width: 0;
+  border-radius: var(--animated-list-radius, 9px);
+  transform-origin: center;
+  transition: opacity .3s cubic-bezier(.22, 1, .36, 1), transform .62s cubic-bezier(.34, 1.4, .64, 1), filter .2s ease;
+  transition-delay: var(--animated-list-delay, 0s);
+}
+
+.item[data-state="in"] { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+.list[data-animation="pop"] .item[data-state="above"] { opacity: 0; transform: translate3d(0, -12px, 0) scale(.8); }
+.list[data-animation="pop"] .item[data-state="below"] { opacity: 0; transform: translate3d(0, 12px, 0) scale(.8); }
+.list[data-animation="slide"] .item[data-state="above"] { opacity: 0; transform: translate3d(0, -28px, 0) scale(.98); }
+.list[data-animation="slide"] .item[data-state="below"] { opacity: 0; transform: translate3d(0, 28px, 0) scale(.98); }
+.list[data-animation="fade"] .item[data-state="above"] { opacity: 0; transform: translate3d(0, -4px, 0); }
+.list[data-animation="fade"] .item[data-state="below"] { opacity: 0; transform: translate3d(0, 4px, 0); }
+.list[data-animation="none"] .item { opacity: 1; transform: none; transition: none; }
+.item:active { transform: scale(.995); }
+
+@supports (transition-timing-function: linear(0, 1)) {
+  .item { transition-timing-function: linear(0, 0.0603, 0.2033, 0.3821, 0.5633, 0.7258, 0.8584, 0.9574, 1.0242, 1.0634, 1.0809, 1.0828, 1.0747, 1.0613, 1.046, 1.0313, 1.0186, 1.0085, 1.0012, 0.9965, 0.994, 0.9931, 0.9933, 0.9941, 0.9953, 0.9966, 0.9978, 0.9988, 1), cubic-bezier(.22, 1, .36, 1), ease; }
+  .selectionIndicator { transition-timing-function: cubic-bezier(.2, .8, .2, 1), cubic-bezier(.2, .8, .2, 1), ease; }
+}
+
+.selectionIndicator {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  border: 1px solid var(--animated-list-accent, currentColor);
+  border-radius: var(--animated-list-radius, 9px);
+  background: color-mix(in srgb, var(--animated-list-accent, currentColor) 7%, transparent);
+  opacity: .9;
+  pointer-events: none;
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), height .18s cubic-bezier(.2, .8, .2, 1), opacity .12s ease;
+}
+
+.list:not(:focus-within) .selectionIndicator { opacity: .55; }
+.list .selectionIndicator[data-state="above"], .list .selectionIndicator[data-state="below"] { opacity: 0; }
+.list[data-fades="true"] { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--animated-list-fade-top, 0px), #000 calc(100% - var(--animated-list-fade-bottom, 0px)), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 var(--animated-list-fade-top, 0px), #000 calc(100% - var(--animated-list-fade-bottom, 0px)), transparent 100%); }
+
+:global(.dropdown-select-options [role="option"]) { cursor: pointer; }
+:global(.dropdown-select-options [role="option"]:hover .dropdown-select-option),
+:global(.dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #eaf2ff; color: #215db3; }
+:global(.dark .dropdown-select-options [role="option"]:hover .dropdown-select-option),
+:global(.dark .dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #1b3151; color: #a9ccff; }
+:global(.sidebar-animated-links) { max-height: none; overflow: visible; scrollbar-width: none; }
+:global(.sidebar-animated-links::-webkit-scrollbar) { display: none; }
+:global(.sidebar-animated-links > [role="listitem"]) { width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .item, .selectionIndicator { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  .item { opacity: 1 !important; transform: none !important; }
+}

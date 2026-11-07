@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ActivityItem, Approval, ApprovalStatus, NotificationItem, Profile, Settings, Staff, Task } from '../types'
 import { activity as seedActivity, approvals as seedApprovals, notifications as seedNotifications, staff as seedStaff, tasks as seedTasks } from '../data/seed'
-const KEY = 'idd-demo-v1'
+const KEY = 'idd-dashboard-v2'
 export interface Toast { id: number; kind: 'success' | 'error' | 'info'; text: string }
 interface State { approvals: Approval[]; tasks: Task[]; staff: Staff[]; notifications: NotificationItem[]; activity: ActivityItem[]; settings: Settings; profile: Profile; authed: boolean }
 const defaultSettings: Settings = { instituteName: 'Institute of Applied Sciences', academicYear: '2026–27', reportingPeriod: 'Monthly', theme: 'light', sidebar: 'expanded', density: 'comfortable', notifyApprovals: true, notifyDeadlines: true, notifyOverdue: true, notifyPerformance: true }
@@ -12,6 +12,18 @@ function load(): State {
     if (raw) {
       const p = JSON.parse(raw)
       if (p && Array.isArray(p.approvals) && Array.isArray(p.tasks)) {
+        const savedApprovals = p.approvals.map((approval: Approval) => {
+          const seed = seedApprovals.find(item => item.id === approval.id)
+          if (!seed) return approval
+          const merged = { ...seed, ...approval }
+          if (approval.id === 'REQ-1045') {
+            if (approval.description.startsWith('Request for a tuition fee concession for the')) merged.description = seed.description
+            if (approval.justification === 'Supporting information has been submitted for review.') merged.justification = seed.justification
+          }
+          return merged
+        })
+        const savedApprovalIds = new Set(savedApprovals.map((approval: Approval) => approval.id))
+        p.approvals = [...savedApprovals, ...seedApprovals.filter(approval => !savedApprovalIds.has(approval.id))]
         p.tasks.forEach((task: Task & { milestones?: string[]; subtasks?: unknown }) => { delete task.milestones; delete task.subtasks })
         if (p.settings) delete p.settings.rolePreview
         if (p.profile?.name === 'Dr. Rajesh Menon') p.profile.name = defaultProfile.name
@@ -40,7 +52,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   useEffect(() => { try { const { authed, ...rest } = state; localStorage.setItem(KEY, JSON.stringify(rest)) } catch {} }, [state])
   useEffect(() => { document.documentElement.classList.toggle('dark', state.settings.theme === 'dark') }, [state.settings.theme])
-  const toast = (kind: Toast['kind'], text: string) => { const id = ++n; setToasts(t => [...t, { id, kind, text }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4500) }
+  const toast = (kind: Toast['kind'], text: string) => { const id = ++n; setToasts(t => [...t, { id, kind, text }]) }
   const log = (a: Omit<ActivityItem, 'id' | 'date'>) => setState(s => ({ ...s, activity: [{ id: 'A' + Date.now(), date: new Date().toISOString(), ...a }, ...s.activity] }))
   const value: Ctx = useMemo(() => ({
     ...state, toasts, toast, dismissToast: (id) => setToasts(t => t.filter(x => x.id !== id)),

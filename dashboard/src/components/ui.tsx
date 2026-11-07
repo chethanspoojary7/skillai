@@ -2,10 +2,32 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Priority } from '../types'
+import AnimatedList from './AnimatedList'
 let modalSequence = 0
 const modalStack: string[] = []
 const modalSubscribers = new Set<() => void>()
 const notifyModalStack = () => modalSubscribers.forEach(subscriber => subscriber())
+let savedScrollStyles: { body: string; html: string; content: string } | null = null
+function lockPageScroll() {
+  if (savedScrollStyles) return
+  const content = document.querySelector<HTMLElement>('.device-content')
+  savedScrollStyles = {
+    body: document.body.style.overflow,
+    html: document.documentElement.style.overflow,
+    content: content?.style.overflow || '',
+  }
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+  if (content) content.style.overflow = 'hidden'
+}
+function unlockPageScroll() {
+  if (!savedScrollStyles) return
+  document.body.style.overflow = savedScrollStyles.body
+  document.documentElement.style.overflow = savedScrollStyles.html
+  const content = document.querySelector<HTMLElement>('.device-content')
+  if (content) content.style.overflow = savedScrollStyles.content
+  savedScrollStyles = null
+}
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <div className={`app-card rounded-xl border border-slate-100 bg-white shadow-[0_2px_10px_rgba(27,65,123,0.05)] dark:border-slate-700 dark:bg-slate-900 ${className}`}>{children}</div>
 }
@@ -38,7 +60,6 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
   const wrapper = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
-  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const selectedIndex = Math.max(0, options.findIndex(option => option.value === value))
   const selected = options[selectedIndex]
   useEffect(() => {
@@ -72,8 +93,8 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
     const maxHeight = Math.max(80, Math.min(260, placeAbove ? above : below))
     const top = placeAbove ? Math.max(8, rect.top - Math.min(estimatedHeight, maxHeight) - 4) : Math.min(rect.bottom + 4, window.innerHeight - maxHeight - 8)
     setPosition({ left, top, width, maxHeight })
-    requestAnimationFrame(() => optionRefs.current[activeIndex]?.focus({ preventScroll: true }))
-  }, [open, activeIndex, options.length])
+    requestAnimationFrame(() => menu.current?.querySelector<HTMLElement>('[role="listbox"]')?.focus({ preventScroll: true }))
+  }, [open, options.length])
   const openMenu = () => {
     if (disabled) return
     setActiveIndex(selectedIndex)
@@ -85,11 +106,6 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
     setOpen(false)
     trigger.current?.focus()
   }
-  const moveActive = (index: number) => {
-    const next = (index + options.length) % options.length
-    setActiveIndex(next)
-    optionRefs.current[next]?.focus({ preventScroll: true })
-  }
   return (
     <div ref={wrapper} className={`dropdown-select ${variant === 'compact' ? 'compact' : ''} ${className}`}>
       <button ref={trigger} type="button" className="dropdown-select-trigger" role="combobox" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `dropdown-${ariaLabel.replace(/[^a-z0-9]+/gi, '-')}` : undefined} disabled={disabled} onClick={() => open ? setOpen(false) : openMenu()} onKeyDown={event => {
@@ -98,14 +114,30 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
       }}>
         <span>{selected?.label || ''}</span><ChevronDown size={15} aria-hidden="true" />
       </button>
-      {open && position && createPortal(<div ref={menu} id={`dropdown-${ariaLabel.replace(/[^a-z0-9]+/gi, '-')}`} className="dropdown-select-menu" role="listbox" aria-label={`${ariaLabel} options`} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight }} onKeyDown={event => {
-        if (event.key === 'ArrowDown') { event.preventDefault(); moveActive(activeIndex + 1) }
-        if (event.key === 'ArrowUp') { event.preventDefault(); moveActive(activeIndex - 1) }
-        if (event.key === 'Home') { event.preventDefault(); moveActive(0) }
-        if (event.key === 'End') { event.preventDefault(); moveActive(options.length - 1) }
+      {open && position && createPortal(<div ref={menu} className="dropdown-select-menu" style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, overflow: 'hidden' }} onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); setOpen(false); trigger.current?.focus() }
       }}>
-        {options.map((option, index) => <button ref={element => { optionRefs.current[index] = element }} key={option.value} type="button" role="option" aria-selected={value === option.value} tabIndex={activeIndex === index ? 0 : -1} className="dropdown-select-option" onFocus={() => setActiveIndex(index)} onClick={() => choose(option)}>{option.label}</button>)}
+        <AnimatedList
+          items={options}
+          id={`dropdown-${ariaLabel.replace(/[^a-z0-9]+/gi, '-')}`}
+          ariaLabel={`${ariaLabel} options`}
+          listRole="listbox"
+          itemRole="option"
+          initialSelectedIndex={activeIndex}
+          loop
+          selectOnHover
+          animation="pop"
+          animateOnce={false}
+          stagger={0.05}
+          showGradients
+          accentColor="var(--purple, #3978df)"
+          className="dropdown-select-options"
+          maxHeight={position.maxHeight - 12}
+          onItemSelect={(_, index) => setActiveIndex(index)}
+          onItemActivate={choose}
+          activateOnClick
+          renderItem={option => <span className="dropdown-select-option">{option.label}</span>}
+        />
       </div>, document.body)}
     </div>
   )
@@ -143,7 +175,7 @@ export function RecordSurface({ children, onActivate, label, className = '' }: {
   }
   return <div role="group" tabIndex={0} aria-label={label} onKeyDown={activateFromKeyboard} onDoubleClick={activateFromDoubleClick} className={`record-surface ${className}`}>{children}</div>
 }
-export function Modal({ open, onClose, onBack, title, children, wide }: { open: boolean; onClose: () => void; onBack?: () => void; title: string; children: React.ReactNode; wide?: boolean }) {
+export function Modal({ open, onClose, onBack, title, children, wide, className = '' }: { open: boolean; onClose: () => void; onBack?: () => void; title: string; children: React.ReactNode; wide?: boolean; className?: string }) {
   const [modalId] = useState(() => `modal-${++modalSequence}`)
   const [topModalId, setTopModalId] = useState<string | null>(() => modalStack[modalStack.length - 1] || null)
   useLayoutEffect(() => {
@@ -152,6 +184,7 @@ export function Modal({ open, onClose, onBack, title, children, wide }: { open: 
     if (open) {
       const currentIndex = modalStack.indexOf(modalId)
       if (currentIndex !== -1) modalStack.splice(currentIndex, 1)
+      if (modalStack.length === 0) lockPageScroll()
       modalStack.push(modalId)
     }
     notifyModalStack()
@@ -159,12 +192,25 @@ export function Modal({ open, onClose, onBack, title, children, wide }: { open: 
       modalSubscribers.delete(updateTopModal)
       const currentIndex = modalStack.indexOf(modalId)
       if (currentIndex !== -1) modalStack.splice(currentIndex, 1)
+      if (modalStack.length === 0) unlockPageScroll()
       notifyModalStack()
     }
   }, [open, modalId])
   if (!open) return null
   const isTopModal = topModalId === modalId
-  return <div aria-hidden={!isTopModal} style={isTopModal ? undefined : { display: 'none' }} className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4" onClick={onClose}><div className={`max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-slate-900 sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`} onClick={e => e.stopPropagation()}><div className="mb-3 flex min-w-0 items-center gap-2"><button type="button" aria-label="Back" onClick={onBack || onClose} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><ChevronLeft size={18} /><span>Back</span></button><h3 className="min-w-0 flex-1 truncate text-base font-semibold text-slate-900 dark:text-white">{title}</h3><button type="button" aria-label="Close" onClick={onClose} className="shrink-0 rounded-full p-1 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={18} /></button></div>{children}</div></div>
+  return createPortal(
+    <div aria-hidden={!isTopModal} style={isTopModal ? undefined : { display: 'none' }} className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4" onClick={onClose}>
+      <div className={`modal-panel max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-slate-900 sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'} ${className}`} onClick={e => e.stopPropagation()}>
+        <div className="modal-titlebar mb-3 flex min-w-0 items-center gap-2">
+          <button type="button" aria-label="Back" onClick={onBack || onClose} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><ChevronLeft size={18} /><span>Back</span></button>
+          <h3 className="min-w-0 flex-1 truncate text-base font-semibold text-slate-900 dark:text-white">{title}</h3>
+          <button type="button" aria-label="Close" onClick={onClose} className="shrink-0 rounded-full p-1 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={18} /></button>
+        </div>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  )
 }
 export function Confirm({ open, onClose, onConfirm, title, text, confirmLabel = 'Confirm' }: { open: boolean; onClose: () => void; onConfirm: () => void; title: string; text: string; confirmLabel?: string }) {
   return <Modal open={open} onClose={onClose} title={title}><p className="text-sm text-slate-600 dark:text-slate-300">{text}</p><div className="mt-5 flex justify-end gap-2"><Btn variant="secondary" onClick={onClose}>Cancel</Btn><Btn variant="danger" onClick={() => { onConfirm(); onClose() }}>{confirmLabel}</Btn></div></Modal>

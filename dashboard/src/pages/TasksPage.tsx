@@ -96,7 +96,7 @@ export default function TasksPage() {
     if (!form.dueTime) errs.dueTime = 'Due time is required.'
     if (form.startDate && form.dueDate && form.dueDate < form.startDate) errs.due = 'Due date cannot be earlier than the start date.'
     setFormErrors(errs); if (Object.keys(errs).length) return
-    const base = (editing || { id: `TSK-${211 + tasks.length}`, status: 'Not Started', progress: 0, attachments: ['Checklist (demo).pdf'], comments: [], createdAt: dateKey(new Date()) }) as Task
+    const base = (editing || { id: `TSK-${211 + tasks.length}`, status: 'Not Started', progress: 0, attachments: [], comments: [], createdAt: dateKey(new Date()) }) as Task
     const saved: Task = { ...withoutSubtasks(base), title: form.title.trim(), category: form.category, departmentId: form.departmentId, responsibleId: form.responsibleId, teamIds: form.teamIds, priority: form.priority, startDate: form.startDate, dueDate: form.dueDate, dueTime: form.dueTime, outcome: form.outcome, description: form.description, instructions: form.instructions, dependencies: form.dependencies, notes: form.notes, blockedReason: form.blockedReason || undefined }
     upsertTask(saved); toast('success', editing ? 'Task updated.' : 'Task created and assigned.'); setFormOpen(false); setDetail(saved); setParams({})
     if (!editing) addNotification({ title: 'Task assigned', description: `${saved.title} assigned to ${staffName(saved.responsibleId)}.`, date: new Date().toISOString(), category: 'Task', link: '/tasks', recordId: saved.id })
@@ -163,11 +163,19 @@ export default function TasksPage() {
           </tbody></table></div>
           {filtered.length === 0 ? <div className="mt-4"><Empty title="No tasks match these filters" text="Adjust a filter, or create a new task." /></div> : <div className="mt-4 flex justify-end"><Pagination page={page} pages={pages} onPage={setPage} total={filtered.length} /></div>}
         </>}
-        {view === 'kanban' && <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-          {STATUSES.map(s => <div key={s} className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/50"><h4 className="text-sm font-semibold">{s} ({tasks.filter(t => t.status === s).length})</h4><div className="mt-3 space-y-3">
-            {filtered.filter(t => t.status === s).map(t => <RecordSurface key={t.id} label={`Open task ${t.id}, ${t.title}`} onActivate={() => setDetail(t)}><Card className="p-3"><p className="text-sm font-medium">{t.title}</p><p className="mt-1 text-xs text-slate-500">{t.id} · {staffName(t.responsibleId)} · Due {fmt(t.dueDate)}</p><div className="mt-2"><Progress value={t.progress} /></div><div className="mt-2 flex flex-wrap gap-1">{NEXT[s].map(nxt => <button key={nxt} onClick={() => move(t, nxt)} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium dark:bg-slate-700">→ {nxt}</button>)}</div></Card></RecordSurface>)}
-            {filtered.filter(t => t.status === s).length === 0 && <p className="text-xs text-slate-500">No tasks here.</p>}
-          </div></div>)}
+        {view === 'kanban' && <div className="task-kanban-scroll mt-4">
+          <div className="task-kanban-board">
+            {STATUSES.map(s => {
+              const columnTasks = filtered.filter(t => t.status === s)
+              return <section key={s} className="task-kanban-column">
+                <h4 className="text-sm font-semibold"><span>{s}</span><span className="task-kanban-count">{columnTasks.length}</span></h4>
+                <div className="task-kanban-cards">
+                  {columnTasks.map(t => <RecordSurface key={t.id} label={`Open task ${t.id}, ${t.title}`} onActivate={() => setDetail(t)} className="task-kanban-record"><Card className="p-3"><p className="task-kanban-title text-sm font-medium">{t.title}</p><p className="task-kanban-meta mt-1 text-xs text-slate-500">{t.id} · {staffName(t.responsibleId)} · Due {fmt(t.dueDate)}</p><div className="mt-2"><Progress value={t.progress} /></div>{NEXT[s].length > 0 && <div className="task-kanban-actions mt-2">{NEXT[s].map(nxt => <button key={nxt} type="button" onClick={() => move(t, nxt)} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium dark:bg-slate-700">→ {nxt}</button>)}</div>}</Card></RecordSurface>)}
+                  {columnTasks.length === 0 && <p className="task-kanban-empty text-xs text-slate-500">No tasks here.</p>}
+                </div>
+              </section>
+            })}
+          </div>
         </div>}
         {view === 'calendar' && <div className="schedule-calendar">
           <div className="schedule-month-heading">
@@ -200,7 +208,7 @@ export default function TasksPage() {
           <div className="grid gap-4 sm:grid-cols-2"><div><p className="text-slate-500">Department / Responsible</p><p className="font-medium">{deptName(detail.departmentId)} / {staffName(detail.responsibleId)}</p></div><div><p className="text-slate-500">Timeline</p><p className="font-medium">{fmt(detail.startDate)} → {fmt(detail.dueDate)} · {formatTime(detail.dueTime || '17:00')}</p></div><div><p className="text-slate-500">Category</p><p className="font-medium">{detail.category}</p></div><div><p className="text-slate-500">Team</p><p className="font-medium">{detail.teamIds.map(staffName).join(', ') || '—'}</p></div></div>
           <div><p className="font-semibold">Description</p><p className="mt-1 text-slate-600 dark:text-slate-300">{detail.description}</p><p className="mt-2 font-semibold">Expected outcome</p><p className="mt-1 text-slate-600 dark:text-slate-300">{detail.outcome}</p><p className="mt-2 font-semibold">Instructions</p><p className="mt-1 text-slate-600 dark:text-slate-300">{detail.instructions}</p></div>
           <div><p className="font-semibold">Progress</p><div className="mt-2 flex items-center gap-3"><div className="flex-1"><Progress value={detail.progress} /></div><span>{detail.progress}%</span><input type="range" min={0} max={100} value={detail.progress} onChange={e => updateTask(detail.id, { progress: Number(e.target.value) })} aria-label="Update progress" className="w-32" /></div></div>
-          <div><p className="font-semibold">Attachments (demo)</p><p className="text-slate-600 dark:text-slate-300">{detail.attachments.join(', ')}</p>{detail.delayReason && <p className="mt-2"><strong>Delay reason:</strong> {detail.delayReason}</p>}{detail.notes && <p className="mt-1"><strong>Notes:</strong> {detail.notes}</p>}</div>
+          {detail.attachments.length > 0 && <div><p className="font-semibold">Attachments</p><p className="text-slate-600 dark:text-slate-300">{detail.attachments.join(', ')}</p></div>}{detail.delayReason && <p><strong>Delay reason:</strong> {detail.delayReason}</p>}{detail.notes && <p><strong>Notes:</strong> {detail.notes}</p>}
           <div><p className="font-semibold">Comments & updates</p><ul className="mt-2 space-y-2">{detail.comments.map((c, i) => <li key={i} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><strong>{c.author}</strong> · {fmt(c.date)}<br />{c.text}</li>)}</ul><div className="mt-3 flex gap-2"><input value={comment} onChange={e => setComment(e.target.value)} placeholder="Add a comment or update…" className={inputCls} /><Btn onClick={() => { if (!comment.trim()) return; updateTask(detail.id, {}, comment); setDetail({ ...detail, comments: [...detail.comments, { author: 'Director', text: comment, date: new Date().toISOString().slice(0, 10) }] }); setComment(''); toast('success', 'Comment added.') }}>Add</Btn></div></div>
           <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
             {NEXT[detail.status].map(nxt => <Btn key={nxt} variant={nxt === 'Completed' ? 'primary' : 'secondary'} onClick={() => { move(detail, nxt); if (nxt !== 'Completed') setDetail({ ...detail, status: nxt }) }}>{nxt === 'In Progress' && detail.status === 'Submitted for Review' ? 'Return for Correction' : `Move to ${nxt}`}</Btn>)}
@@ -216,7 +224,7 @@ export default function TasksPage() {
         <Field label="Blocked reason (required)"><textarea value={blockReason} onChange={e => setBlockReason(e.target.value)} className={inputCls} rows={3} placeholder="Why is this task blocked?" /></Field>
         <div className="mt-4 flex justify-end gap-2"><Btn variant="secondary" onClick={() => setShowBlock(false)}>Cancel</Btn><Btn variant="danger" onClick={() => { if (!detail || !blockReason.trim()) { toast('error', 'A blocked reason is required.'); return } updateTask(detail.id, { status: 'Blocked', blockedReason: blockReason }); toast('success', 'Task marked as blocked.'); setShowBlock(false); closeTaskDetail(); setBlockReason('') }}>Confirm blocked</Btn></div>
       </Modal>
-      <Confirm open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Cancel this task?" text="This removes the task from the demo dataset. This cannot be undone in this demo." confirmLabel="Cancel task" onConfirm={() => { if (confirmDelete) { deleteTask(confirmDelete.id); toast('success', 'Task cancelled.'); closeTaskDetail() } }} />
+      <Confirm open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Cancel this task?" text="This removes the task from the dashboard. This cannot be undone." confirmLabel="Cancel task" onConfirm={() => { if (confirmDelete) { deleteTask(confirmDelete.id); toast('success', 'Task cancelled.'); closeTaskDetail() } }} />
       <Confirm open={!!confirmComplete} onClose={() => setConfirmComplete(null)} title="Mark task as completed?" text="Completed tasks are no longer counted as overdue. Confirm that the work and evidence have been reviewed." confirmLabel="Mark completed" onConfirm={() => { if (confirmComplete) { updateTask(confirmComplete.id, { status: 'Completed', progress: 100 }); toast('success', 'Task completed.'); closeTaskDetail() } }} />
       <Modal open={formOpen} onClose={closeTaskForm} title={editing ? 'Edit task' : 'Create task'} wide>
         <div className="grid gap-4 sm:grid-cols-2 text-sm">
@@ -233,7 +241,7 @@ export default function TasksPage() {
           <div className="sm:col-span-2"><Field label="Supporting team members"><div className="flex flex-wrap gap-2">{deptStaff.filter(s => s.id !== form.responsibleId).map(s => <label key={s.id} className={`cursor-pointer rounded-full border px-3 py-1.5 ${form.teamIds.includes(s.id) ? 'border-[#0F2A4A] bg-blue-50 text-blue-800' : 'border-slate-300'}`}><input type="checkbox" className="hidden" checked={form.teamIds.includes(s.id)} onChange={() => setForm({ ...form, teamIds: form.teamIds.includes(s.id) ? form.teamIds.filter(x => x !== s.id) : [...form.teamIds, s.id] })} />{s.name}</label>)}</div></Field></div>
           <Field label="Task instructions"><textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} className={inputCls} rows={2} /></Field>
           <Field label="Additional notes"><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className={inputCls} rows={2} /></Field>
-          <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800">Supporting attachments are represented as demo files in this frontend build. Dependencies are tracked as free text in the task notes for this demo.</div>
+          <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800">Dependencies are tracked as free text in the task notes.</div>
         </div>
         <div className="mt-5 flex justify-end gap-2"><Btn variant="secondary" onClick={closeTaskForm}>Cancel</Btn><Btn onClick={submitForm}>{editing ? 'Save changes' : 'Create Task'}</Btn></div>
       </Modal>

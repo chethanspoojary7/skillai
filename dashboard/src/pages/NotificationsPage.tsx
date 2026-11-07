@@ -15,9 +15,9 @@ export default function NotificationsPage() {
           <div className="min-w-0"><p className="font-medium">{n.title} {!n.read && <span className="ml-1 text-xs font-bold text-blue-700">· Unread</span>}</p><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{n.description}</p><p className="mt-1 text-xs text-slate-500">{fmtDT(n.date)} · {n.category}{n.recordId ? ` · ${n.recordId}` : ''}</p></div>
           <div className="flex gap-2"><Badge text={n.category} tone="blue" /><Btn variant="ghost" className="px-2 py-1" onClick={() => markNotification(n.id, !n.read)}>{n.read ? 'Mark unread' : 'Mark read'}</Btn><Btn variant="ghost" className="px-2 py-1" onClick={() => setToDelete(n.id)}>Delete</Btn></div>
         </RecordSurface>)}
-        {list.length === 0 && <Empty title="No notifications here" text="Try a different filter, or check back after new demo activity." />}</div>
+        {list.length === 0 && <Empty title="No notifications here" text="Try a different filter, or check back after new activity." />}</div>
       </Card>
-      <Confirm open={!!toDelete} onClose={() => setToDelete(null)} title="Delete this notification?" text="This removes it from the local demo state only." confirmLabel="Delete" onConfirm={() => { if (toDelete) deleteNotification(toDelete); toast('success', 'Notification deleted.') }} />
+      <Confirm open={!!toDelete} onClose={() => setToDelete(null)} title="Delete this notification?" text="This removes the notification from the dashboard." confirmLabel="Delete" onConfirm={() => { if (toDelete) deleteNotification(toDelete); toast('success', 'Notification deleted.') }} />
     </div>
   )
 }

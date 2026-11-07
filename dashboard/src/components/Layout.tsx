@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Activity, Bell, Building2, CheckSquare, ClipboardList, FileText,
-  LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, Settings, UserRound, Users,
+  Activity, Bell, Building2, CheckSquare, ClipboardList, LayoutDashboard,
+  PanelLeftClose, PanelLeftOpen, Search, Settings, UserRound, Users,
 } from 'lucide-react'
 import { useApp } from '../store/AppContext'
+import AnimatedList from './AnimatedList'
+import SwipeToast from './SwipeToast'
 
 const RAIL = [
   { section: 'Overview', links: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }] },
@@ -14,15 +16,11 @@ const RAIL = [
     { to: '/tasks', label: 'Schedule', icon: ClipboardList },
     { to: '/performance', label: 'Performance', icon: Activity },
   ] },
-  { section: 'Insights', links: [
-    { to: '/reports', label: 'Reports', icon: FileText },
-    { to: '/activity', label: 'Activity', icon: Activity },
-  ] },
 ]
 const TITLES: Record<string, string> = {
   '/': 'Dashboard', '/approvals': 'Approvals', '/tasks': 'Schedule',
   '/performance': 'Performance', '/departments': 'Employees',
-  '/reports': 'Reports', '/notifications': 'Notifications', '/activity': 'Activity',
+  '/notifications': 'Notifications',
   '/settings': 'Settings', '/profile': 'Profile',
   '/performance/overview': 'Performance · Overview',
   '/performance/academic': 'Performance · Academic',
@@ -74,22 +72,43 @@ export default function Layout() {
             {RAIL.map(group => (
               <div className="sidebar-group" key={group.section}>
                 <span className="sidebar-section-label">{group.section}</span>
-                {group.links.map(item => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.to === '/'}
-                    className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-                  >
-                    <item.icon size={16} />
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
+                <AnimatedList
+                  items={group.links}
+                  ariaLabel={`${group.section} navigation`}
+                  listRole="list"
+                  itemRole="listitem"
+                  selectOnClick={false}
+                  enableArrowNavigation={false}
+                  animation="pop"
+                  stagger={0.05}
+                  className="sidebar-animated-links"
+                  renderItem={item => (
+                    <NavLink
+                      to={item.to}
+                      end={item.to === '/'}
+                      className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                    >
+                      <item.icon size={16} />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  )}
+                />
               </div>
             ))}
           </nav>
           <div className="sidebar-bottom">
-            <NavLink to="/settings" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}><Settings size={16} /><span>Settings</span></NavLink>
+            <AnimatedList
+              items={[{ to: '/settings', label: 'Settings', icon: Settings }]}
+              ariaLabel="Settings navigation"
+              listRole="list"
+              itemRole="listitem"
+              selectOnClick={false}
+              enableArrowNavigation={false}
+              animation="pop"
+              stagger={0.05}
+              className="sidebar-animated-links"
+              renderItem={item => <NavLink to={item.to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}><item.icon size={16} /><span>{item.label}</span></NavLink>}
+            />
             <Link to="/profile" className="sidebar-profile">
               <span className="sidebar-profile-avatar">{profile.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>
               <span className="sidebar-profile-copy"><strong>{profile.name}</strong><small>{profile.designation}</small></span>
@@ -134,7 +153,23 @@ export default function Layout() {
         </div>
       </div>
       <div className="toast-stack">
-        {toasts.map(item => <button type="button" key={item.id} onClick={() => dismissToast(item.id)} className={`dashboard-toast ${item.kind}`} role="status">{item.text}</button>)}
+        {toasts.map(item => (
+          <SwipeToast
+            key={item.id}
+            title={item.text}
+            background={item.kind === 'success' ? '#368b59' : item.kind === 'error' ? '#c84952' : '#383943'}
+            color="#fff"
+            fuseColor={item.kind === 'success' ? '#a7f3d0' : item.kind === 'error' ? '#fecaca' : '#bfdbfe'}
+            width={320}
+            radius={12}
+            slideMs={280}
+            duration={4500}
+            fuse="bottom"
+            pauseOnHover
+            inline
+            onClose={() => dismissToast(item.id)}
+          />
+        ))}
       </div>
     </div>
   )

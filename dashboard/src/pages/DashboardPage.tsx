@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, ArrowUpRight, BarChart3, CalendarDays, CheckSquare,
-  ClipboardList, FileText, Plus, TrendingUp,
+  ClipboardList, Plus, TrendingUp,
 } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie,
@@ -12,7 +12,7 @@ import { departments, events, monthlyTrend, staff } from '../data/seed'
 import { fmt, isOverdue, money } from '../utils'
 import { Badge, Btn, Card, DoubleClickAction, Progress, RecordRow, RecordSurface, priorityTone, statusTone } from '../components/ui'
 
-const chartColors = ['#8884f2', '#62b879', '#f28b97', '#e9a057', '#65a6c5']
+const chartColors = ['#347be0', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 const dateOnly = (value: string) => new Date(`${value}T00:00:00`)
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -81,13 +81,12 @@ export default function DashboardPage() {
         <div>
           <span className="director-eyebrow">INSTITUTE OVERVIEW</span>
           <h1>Welcome back, {profile.name}</h1>
-          <p>{settings.instituteName} <span>·</span> Academic year {settings.academicYear} <span>·</span> Demonstration data</p>
+          <p>{settings.instituteName} <span>·</span> Academic year {settings.academicYear}</p>
         </div>
         <div className="director-actions">
           <Btn onClick={() => navigate('/approvals')}><CheckSquare size={15} /> Review Approvals</Btn>
           <Btn variant="secondary" onClick={() => navigate('/tasks?new=1')}><Plus size={15} /> Create Task</Btn>
           <Btn variant="secondary" onClick={() => navigate('/performance')}><BarChart3 size={15} /> Performance</Btn>
-          <Btn variant="secondary" onClick={() => navigate('/reports')}><FileText size={15} /> Generate Report</Btn>
         </div>
       </header>
 
@@ -177,6 +176,20 @@ export default function DashboardPage() {
               </div>
             </div>
           </Card>
+
+          <Card className="director-panel director-activity-panel">
+            <div className="director-panel-heading">
+              <div><h2>Recent activity</h2><p>Latest institute updates</p></div>
+            </div>
+            <ul className="director-activity-list">
+              {activity.slice(0, 4).map(item => (
+                <li key={item.id}>
+                  <span className="activity-marker" />
+                  <div><strong>{item.actor}</strong><span>{item.action.toLowerCase()} · {item.recordId}</span><small>{item.description}</small></div>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
 
         <div className="director-secondary-column">
@@ -198,8 +211,8 @@ export default function DashboardPage() {
                   <YAxis domain={[70, 95]} tick={{ fontSize: 9, fill: '#858796' }} axisLine={false} tickLine={false} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Line type="monotone" dataKey="actual" name="Actual" stroke="#8884f2" strokeWidth={2.5} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="target" name="Target" stroke="#62b879" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+                  <Line type="monotone" dataKey="actual" name="Actual" stroke="#347be0" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="target" name="Target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 4" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -217,21 +230,6 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="director-panel director-activity-panel">
-            <div className="director-panel-heading">
-              <div><h2>Recent activity</h2><p>Latest institute updates</p></div>
-              <Link to="/activity" className="director-view-link">Activity log <ArrowUpRight size={13} /></Link>
-            </div>
-            <ul className="director-activity-list">
-              {activity.slice(0, 4).map(item => (
-                <li key={item.id}>
-                  <span className="activity-marker" />
-                  <div><strong>{item.actor}</strong><span>{item.action.toLowerCase()} · {item.recordId}</span><small>{item.description}</small></div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
           <Card className="director-panel director-events-panel">
             <div className="director-panel-heading">
               <div><h2>Upcoming events & deadlines</h2><p>Next on the institute calendar</p></div>
@@ -247,7 +245,7 @@ export default function DashboardPage() {
                 </li>
               ))}
             </ul>
-            <p className="director-demo-note">Demo finances: {money(10780000)} of {money(14500000)} collected.</p>
+            <p className="director-demo-note">Department budget: {money(departments[0]?.budget ?? 0)} · Spent: {money(departments[0]?.spent ?? 0)}</p>
           </Card>
         </div>
       </div>

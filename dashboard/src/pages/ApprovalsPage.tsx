@@ -8,19 +8,20 @@ import { fmt, money, downloadCsv, downloadText } from '../utils'
 import { Badge, Btn, Card, DropdownSelect, Empty, Field, Modal, Pagination, RecordRow, SearchInput, inputCls, statusTone } from '../components/ui'
 type SortKey = 'date' | 'title'
 export default function ApprovalsPage() {
-  const { approvals, decideApproval, toast, addNotification } = useApp()
+  const { approvals, dismissedApprovalIds, decideApproval, toast, addNotification } = useApp()
   const [params, setParams] = useSearchParams()
-  const [q, setQ] = useState(''); const [status, setStatus] = useState(params.get('status') || 'All'); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
+  const [q, setQ] = useState(''); const [status, setStatus] = useState(params.get('status') || 'Pending'); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
   const [sort, setSort] = useState<SortKey>('date'); const [page, setPage] = useState(1); const [size, setSize] = useState(10)
   const [detail, setDetail] = useState<Approval | null>(null); const [action, setAction] = useState<{ kind: ApprovalStatus; note: string } | null>(null)
+  const dismissedApprovalSet = useMemo(() => new Set(dismissedApprovalIds), [dismissedApprovalIds])
   useEffect(() => {
-    setStatus(params.get('status') || 'All')
+    setStatus(params.get('status') || 'Pending')
     setPage(1)
   }, [params])
   useEffect(() => { const open = params.get('open'); if (open) { const a = approvals.find(x => x.id === open && x.category === 'Fee Concession'); if (a) setDetail(a) } }, [params, approvals])
   const deptName = (id: string) => departments.find(d => d.id === id)?.name || id
   const filtered = useMemo(() => {
-    let list = approvals.filter(a => a.category === 'Fee Concession')
+    let list = approvals.filter(a => a.category === 'Fee Concession' && !dismissedApprovalSet.has(a.id))
     const qq = q.toLowerCase()
     if (qq) list = list.filter(a => a.id.toLowerCase().includes(qq) || a.title.toLowerCase().includes(qq) || a.applicant.toLowerCase().includes(qq))
     if (status !== 'All') list = list.filter(a => a.status === status)
@@ -28,9 +29,10 @@ export default function ApprovalsPage() {
     if (to) list = list.filter(a => a.date <= to)
     list.sort((a, b) => sort === 'date' ? b.date.localeCompare(a.date) : a.title.localeCompare(b.title))
     return list
-  }, [approvals, q, status, from, to, sort])
+  }, [approvals, dismissedApprovalSet, q, status, from, to, sort])
   const pages = Math.max(1, Math.ceil(filtered.length / size)); const pageItems = filtered.slice((page - 1) * size, page * size)
-  const feeConcessionApprovals = approvals.filter(a => a.category === 'Fee Concession')
+  useEffect(() => { if (page > pages) setPage(pages) }, [page, pages])
+  const feeConcessionApprovals = approvals.filter(a => a.category === 'Fee Concession' && !dismissedApprovalSet.has(a.id))
   const stats = (s: ApprovalStatus) => feeConcessionApprovals.filter(a => a.status === s).length
   const doAction = (kind: ApprovalStatus) => {
     if (!detail) return
@@ -41,17 +43,17 @@ export default function ApprovalsPage() {
     toast('success', `${detail.id} marked as ${kind}.`); setAction(null); setDetail(null)
   }
   const exportCsv = () => { downloadCsv('approvals.csv', [['ID', 'Title', 'Applicant', 'Department', 'Date', 'Amount', 'Status'], ...filtered.map(a => [a.id, a.title, a.applicant, deptName(a.departmentId), a.date, a.amount || '', a.status])]); toast('success', 'CSV exported from the currently filtered records.') }
-  const reset = () => { setQ(''); setStatus('All'); setFrom(''); setTo(''); setPage(1); setParams({}) }
+  const reset = () => { setQ(''); setStatus('Pending'); setFrom(''); setTo(''); setPage(1); setParams({}) }
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {([['Pending', stats('Pending')], ['Approved', stats('Approved')], ['Rejected', stats('Rejected')], ['Returned for Correction', stats('Returned')], ['Total Requests', feeConcessionApprovals.length]] as [string, number][]).map(([label, v]) => <Card key={label as string} className="p-2.5"><p className="text-xs leading-tight text-slate-500">{label}</p><p className="mt-1 text-xl font-bold">{v}</p></Card>)}
       </div>
       <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">Fee concession requests</h3><div className="flex gap-2"><Btn variant="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</Btn></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{status === 'Pending' ? 'Pending fee concession requests' : 'Fee concession requests'}</h3><div className="flex gap-2"><Btn variant="secondary" onClick={exportCsv}><Download size={16} /> Export CSV</Btn></div></div>
         <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-4">
           <SearchInput value={q} onChange={v => { setQ(v); setPage(1) }} placeholder="Search ID, title, applicant…" />
-          <DropdownSelect ariaLabel="Filter by approval status" value={status} onChange={setStatus} options={[{ value: 'All', label: 'All statuses' }, ...['Pending', 'Approved', 'Rejected', 'Returned'].map(item => ({ value: item, label: item }))]} />
+          <DropdownSelect ariaLabel="Filter by approval status" value={status} onChange={value => { setStatus(value); setPage(1); setParams(value === 'Pending' ? {} : { status: value }) }} options={[{ value: 'All', label: 'All statuses' }, ...['Pending', 'Approved', 'Rejected', 'Returned'].map(item => ({ value: item, label: item }))]} />
           <div className="flex gap-2"><input type="date" value={from} onChange={e => setFrom(e.target.value)} className={inputCls} aria-label="From date" /><input type="date" value={to} onChange={e => setTo(e.target.value)} className={inputCls} aria-label="To date" /></div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm"><span>Sort:</span>{(['date', 'title'] as SortKey[]).map(k => <button key={k} onClick={() => setSort(k)} className={`rounded-full px-3 py-1 capitalize ${sort === k ? 'bg-[#0F2A4A] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>{k}</button>)}<button onClick={reset} className="font-medium text-blue-700">Reset filters</button><span className="ml-auto flex items-center gap-2">Page size: <DropdownSelect ariaLabel="Page size" value={String(size)} onChange={value => { setSize(Number(value)); setPage(1) }} options={[5, 10, 20].map(value => ({ value: String(value), label: String(value) }))} className="page-size-dropdown" /></span></div>

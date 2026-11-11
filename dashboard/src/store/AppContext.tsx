@@ -3,7 +3,7 @@ import type { ActivityItem, Approval, ApprovalStatus, NotificationItem, Profile,
 import { activity as seedActivity, approvals as seedApprovals, notifications as seedNotifications, staff as seedStaff, tasks as seedTasks } from '../data/seed'
 const KEY = 'idd-dashboard-v2'
 export interface Toast { id: number; kind: 'success' | 'error' | 'info'; text: string }
-interface State { approvals: Approval[]; tasks: Task[]; staff: Staff[]; notifications: NotificationItem[]; activity: ActivityItem[]; settings: Settings; profile: Profile; authed: boolean }
+interface State { approvals: Approval[]; dismissedApprovalIds: string[]; tasks: Task[]; staff: Staff[]; notifications: NotificationItem[]; activity: ActivityItem[]; settings: Settings; profile: Profile; authed: boolean }
 const defaultSettings: Settings = { instituteName: 'Institute of Applied Sciences', academicYear: '2026–27', reportingPeriod: 'Monthly', theme: 'light', sidebar: 'expanded', density: 'comfortable', notifyApprovals: true, notifyDeadlines: true, notifyOverdue: true, notifyPerformance: true }
 const defaultProfile: Profile = { name: 'Bavesh Suvarna', designation: 'Director', email: 'director@demo.institute', phone: '+91 98765 00000 (demo)', office: "Director's Office, Main Block" }
 function load(): State {
@@ -27,11 +27,11 @@ function load(): State {
         p.tasks.forEach((task: Task & { milestones?: string[]; subtasks?: unknown }) => { delete task.milestones; delete task.subtasks })
         if (p.settings) delete p.settings.rolePreview
         if (p.profile?.name === 'Dr. Rajesh Menon') p.profile.name = defaultProfile.name
-        return { ...p, staff: Array.isArray(p.staff) ? p.staff : seedStaff, authed: false }
+        return { ...p, dismissedApprovalIds: Array.isArray(p.dismissedApprovalIds) ? p.dismissedApprovalIds : [], staff: Array.isArray(p.staff) ? p.staff : seedStaff, authed: false }
       }
     }
   } catch {}
-  return { approvals: seedApprovals, tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: false }
+  return { approvals: seedApprovals, dismissedApprovalIds: [], tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: false }
 }
 interface Ctx extends State {
   toasts: Toast[]; toast: (kind: Toast['kind'], text: string) => void; dismissToast: (id: number) => void
@@ -60,9 +60,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     decideApproval: (id, status, note) => setState(s => {
       const old = s.approvals.find(a => a.id === id); if (!old || old.status !== 'Pending') return s
       const updated = { ...old, status, comments: note ? [...old.comments, { author: 'Director', text: note, date: new Date().toISOString().slice(0, 10) }] : old.comments, history: [...old.history, { date: new Date().toISOString().slice(0, 10), action: status, actor: 'Director' }] }
-      return { ...s, approvals: s.approvals.map(a => a.id === id ? updated : a), activity: [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: status === 'Approved' ? 'Approved approval' : status === 'Rejected' ? 'Rejected approval' : 'Returned approval', recordType: 'Approval', recordId: id, description: old.title, from: 'Pending', to: status }, ...s.activity] }
+      return { ...s, approvals: s.approvals.map(a => a.id === id ? updated : a), dismissedApprovalIds: s.dismissedApprovalIds.includes(id) ? s.dismissedApprovalIds : [...s.dismissedApprovalIds, id], activity: [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: status === 'Approved' ? 'Approved approval' : status === 'Rejected' ? 'Rejected approval' : 'Returned approval', recordType: 'Approval', recordId: id, description: old.title, from: 'Pending', to: status }, ...s.activity] }
     }),
-    bulkApprove: (ids) => setState(s => ({ ...s, approvals: s.approvals.map(a => ids.includes(a.id) && a.status === 'Pending' ? { ...a, status: 'Approved' as const, history: [...a.history, { date: new Date().toISOString().slice(0, 10), action: 'Approved', actor: 'Director' }] } : a) })),
+    bulkApprove: (ids) => setState(s => {
+      const approvedIds = s.approvals.filter(a => ids.includes(a.id) && a.status === 'Pending').map(a => a.id)
+      return { ...s, approvals: s.approvals.map(a => approvedIds.includes(a.id) ? { ...a, status: 'Approved' as const, history: [...a.history, { date: new Date().toISOString().slice(0, 10), action: 'Approved', actor: 'Director' }] } : a), dismissedApprovalIds: [...new Set([...s.dismissedApprovalIds, ...approvedIds])] }
+    }),
     upsertTask: (t) => setState(s => { const exists = s.tasks.some(x => x.id === t.id); return { ...s, tasks: exists ? s.tasks.map(x => x.id === t.id ? t : x) : [t, ...s.tasks], activity: [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: exists ? 'Updated task' : 'Created task', recordType: 'Task', recordId: t.id, description: t.title }, ...s.activity] } }),
     updateTask: (id, patch, note) => setState(s => { const old = s.tasks.find(t => t.id === id); if (!old) return s; const updated = { ...old, ...patch, comments: note ? [...old.comments, { author: 'Director', text: note, date: new Date().toISOString().slice(0, 10) }] : old.comments }; return { ...s, tasks: s.tasks.map(t => t.id === id ? updated : t), activity: patch.status && patch.status !== old.status ? [{ id: 'A' + Date.now(), date: new Date().toISOString(), actor: 'Director', action: 'Changed task status', recordType: 'Task', recordId: id, description: old.title, from: old.status, to: patch.status }, ...s.activity] : s.activity } }),
     deleteTask: (id) => setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== id) })),
@@ -78,7 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markAllNotifications: () => setState(s => ({ ...s, notifications: s.notifications.map(x => ({ ...x, read: true })) })),
     deleteNotification: (id) => setState(s => ({ ...s, notifications: s.notifications.filter(x => x.id !== id) })),
     log, saveSettings: (settings) => setState(s => ({ ...s, settings })), saveProfile: (profile) => setState(s => ({ ...s, profile })),
-    resetDemo: () => { try { localStorage.removeItem(KEY) } catch {}; setState({ approvals: seedApprovals, tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: true }) },
+    resetDemo: () => { try { localStorage.removeItem(KEY) } catch {}; setState({ approvals: seedApprovals, dismissedApprovalIds: [], tasks: seedTasks, staff: seedStaff, notifications: seedNotifications, activity: seedActivity, settings: defaultSettings, profile: defaultProfile, authed: true }) },
   }), [state, toasts])
   return <C.Provider value={value}>{children}</C.Provider>
 }

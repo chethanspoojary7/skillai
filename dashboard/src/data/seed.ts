@@ -8,7 +8,7 @@ export const departments: Department[] = [
 ]
 
 export const staff: Staff[] = [
-  { id: 'S01', name: 'Dr. Ananya Rao', designation: 'Head, AI', departmentId: 'D01', email: 'ananya.rao@example.org', phone: '', tasksAssigned: 1, tasksCompleted: 0, onTime: 0, attendance: 96, goal: 89, quality: 92, workload: 'Light' },
+  { id: 'S01', name: 'Dr. Adithya Rao', designation: 'Head, AI', departmentId: 'D01', email: 'adithya.rao@example.org', phone: '', tasksAssigned: 1, tasksCompleted: 0, onTime: 0, attendance: 96, goal: 89, quality: 92, workload: 'Light' },
 ]
 
 function demoFeeRequest(input: {

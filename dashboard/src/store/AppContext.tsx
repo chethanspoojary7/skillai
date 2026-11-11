@@ -27,7 +27,12 @@ function load(): State {
         p.tasks.forEach((task: Task & { milestones?: string[]; subtasks?: unknown }) => { delete task.milestones; delete task.subtasks })
         if (p.settings) delete p.settings.rolePreview
         if (p.profile?.name === 'Dr. Rajesh Menon') p.profile.name = defaultProfile.name
-        return { ...p, dismissedApprovalIds: Array.isArray(p.dismissedApprovalIds) ? p.dismissedApprovalIds : [], staff: Array.isArray(p.staff) ? p.staff : seedStaff, authed: false }
+        const savedStaff = Array.isArray(p.staff) ? p.staff.map((person: Staff) => {
+          const seed = seedStaff.find(item => item.id === person.id)
+          if (!seed || person.name !== 'Dr. Ananya Rao') return person
+          return { ...person, name: seed.name, email: person.email === 'ananya.rao@example.org' ? seed.email : person.email }
+        }) : seedStaff
+        return { ...p, dismissedApprovalIds: Array.isArray(p.dismissedApprovalIds) ? p.dismissedApprovalIds : [], staff: savedStaff, authed: false }
       }
     }
   } catch {}

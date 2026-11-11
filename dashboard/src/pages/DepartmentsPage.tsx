@@ -27,14 +27,12 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold">Department directory</h2>
-      <div className="overflow-x-auto">
-        <div className="grid min-w-[900px] grid-cols-4 gap-3">
+      <div className="department-card-grid">
         {departments.map(d => { const ts = tasks.filter(t => t.departmentId === d.id); const done = ts.filter(t => t.status === 'Completed').length; const rate = ts.length ? Math.round(done / ts.length * 100) : 0; return (
           <RecordSurface key={d.id} label={`Open ${d.name} department details`} onActivate={() => setDeptDetail(d)}><Card className="p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold">{d.name}</p><p className="truncate text-xs text-slate-500">Head: {staff.find(s => s.id === d.headId)?.name || 'Not assigned'}</p></div><span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-bold text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">{d.short}</span></div>
           <div className="mt-3 grid grid-cols-3 gap-1 text-center"><div className="flex items-center justify-center gap-1"><p className="text-sm font-bold">{staff.filter(s => s.departmentId === d.id).length}</p><p className="text-[10px] text-slate-500">Staff</p></div><div className="flex items-center justify-center gap-1"><p className="text-sm font-bold">{ts.length}</p><p className="text-[10px] text-slate-500">Tasks</p></div><div className="flex items-center justify-center gap-1"><p className="text-sm font-bold">{rate}%</p><p className="text-[10px] text-slate-500">Complete</p></div></div>
           <div className="mt-2"><Progress value={rate} /></div><p className="mt-2 text-xs text-slate-500">Performance: {d.achievement}% / {d.target}% target · {d.students} students</p>
           </Card></RecordSurface>) })}
-        </div>
       </div>
       <Card className="p-4"><div className="staff-directory-header"><h3 className="font-semibold">Staff directory</h3><div className="staff-directory-filters"><SearchInput value={q} onChange={setQ} placeholder="Search staff or designation…" /><DropdownSelect ariaLabel="Filter by department" value={dept} onChange={setDept} options={[{ value: 'All', label: 'All departments' }, ...departments.map(d => ({ value: d.id, label: d.name }))]} /></div></div>
         <p className="mt-1 text-xs text-slate-500">Staff contact details.</p>

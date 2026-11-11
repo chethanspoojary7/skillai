@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Activity, Bell, Building2, CheckSquare, ClipboardList, LayoutDashboard,
@@ -35,11 +35,31 @@ export default function Layout() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 620px)').matches)
   const location = useLocation()
   const navigate = useNavigate()
   const unread = notifications.filter(item => !item.read).length
   const sidebarCollapsed = settings.sidebar === 'collapsed'
   const title = TITLES[location.pathname] || 'Dashboard'
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 620px)')
+    const updateViewport = () => {
+      setIsMobile(media.matches)
+      if (!media.matches) setMobileNavOpen(false)
+    }
+    media.addEventListener('change', updateViewport)
+    return () => media.removeEventListener('change', updateViewport)
+  }, [])
+  useEffect(() => { setMobileNavOpen(false) }, [location.pathname])
+  useEffect(() => {
+    if (!mobileNavOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNavOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [mobileNavOpen])
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     if (!query) return []
@@ -62,8 +82,9 @@ export default function Layout() {
 
   return (
     <div className={`app-shell${settings.density === 'compact' ? ' density-compact' : ''}`}>
-      <div className={`dashboard-device${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
-        <aside id="main-navigation" className="device-sidebar" aria-label="Main navigation">
+      <div className={`dashboard-device${sidebarCollapsed ? ' sidebar-collapsed' : ''}${mobileNavOpen ? ' mobile-nav-open' : ''}`}>
+        {mobileNavOpen && <button type="button" className="mobile-nav-backdrop" aria-label="Close navigation panel" onClick={() => setMobileNavOpen(false)} />}
+        <aside id="main-navigation" className="device-sidebar" aria-label="Main navigation" aria-hidden={isMobile && !mobileNavOpen}>
           <Link to="/" className="sidebar-brand">
             <span className="sidebar-brand-icon"><Building2 size={18} /></span>
             <span className="sidebar-brand-copy"><strong>Director’s Office</strong><small>Institute Management</small></span>
@@ -87,6 +108,7 @@ export default function Layout() {
                       to={item.to}
                       end={item.to === '/'}
                       className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                      onClick={() => setMobileNavOpen(false)}
                     >
                       <item.icon size={16} />
                       <span>{item.label}</span>
@@ -107,9 +129,9 @@ export default function Layout() {
               animation="pop"
               stagger={0.05}
               className="sidebar-animated-links"
-              renderItem={item => <NavLink to={item.to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}><item.icon size={16} /><span>{item.label}</span></NavLink>}
+              renderItem={item => <NavLink to={item.to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={() => setMobileNavOpen(false)}><item.icon size={16} /><span>{item.label}</span></NavLink>}
             />
-            <Link to="/profile" className="sidebar-profile">
+            <Link to="/profile" className="sidebar-profile" onClick={() => setMobileNavOpen(false)}>
               <span className="sidebar-profile-avatar">{profile.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>
               <span className="sidebar-profile-copy"><strong>{profile.name}</strong><small>{profile.designation}</small></span>
             </Link>
@@ -118,8 +140,8 @@ export default function Layout() {
 
         <div className="device-workspace">
           <header className="device-topbar">
-            <button type="button" className="top-icon sidebar-toggle" title={sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel'} aria-label={sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel'} aria-controls="main-navigation" aria-expanded={!sidebarCollapsed} onClick={() => saveSettings({ ...settings, sidebar: sidebarCollapsed ? 'expanded' : 'collapsed' })}>
-              {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            <button type="button" className="top-icon sidebar-toggle" title={isMobile ? (mobileNavOpen ? 'Close navigation panel' : 'Open navigation panel') : (sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel')} aria-label={isMobile ? (mobileNavOpen ? 'Close navigation panel' : 'Open navigation panel') : (sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel')} aria-controls="main-navigation" aria-expanded={isMobile ? mobileNavOpen : !sidebarCollapsed} onClick={() => isMobile ? setMobileNavOpen(open => !open) : saveSettings({ ...settings, sidebar: sidebarCollapsed ? 'expanded' : 'collapsed' })}>
+              {(isMobile ? mobileNavOpen : !sidebarCollapsed) ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
             </button>
             <h1 className="topbar-title">{title}</h1>
             {searchOpen && <div className="global-search">

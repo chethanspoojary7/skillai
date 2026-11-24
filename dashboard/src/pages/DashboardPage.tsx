@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  AlertTriangle, ArrowUpRight, BarChart3, Building2, CalendarDays, CheckSquare,
-  ClipboardList, Mail, MapPin, Plus, TrendingUp,
+  AlertTriangle, ArrowUpRight, BarChart3, CalendarDays, CheckSquare,
+  ClipboardList, Plus, TrendingUp,
 } from 'lucide-react'
 import { useApp } from '../store/AppContext'
 import { departments, events, staff } from '../data/seed'
@@ -14,7 +14,7 @@ const dateOnly = (value: string) => new Date(`${value}T00:00:00`)
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 export default function DashboardPage() {
-  const { approvals, tasks, activity, profile } = useApp()
+  const { approvals, tasks, activity } = useApp()
   const navigate = useNavigate()
   const now = new Date()
   const today = startOfDay(now)
@@ -242,22 +242,6 @@ export default function DashboardPage() {
               </ul>
             </Card>
           </div>
-          <Card className="director-panel director-profile-panel">
-            <div className="director-profile-card">
-              <span className="director-profile-avatar" aria-hidden="true">
-                {profile.name.split(' ').map(part => part[0]).slice(0, 2).join('')}
-              </span>
-              <strong className="director-profile-name">{profile.name}</strong>
-              <span className="director-profile-role">{profile.designation}</span>
-              <span className="director-profile-detail"><Mail size={13} />{profile.email}</span>
-              <span className="director-profile-detail"><MapPin size={13} />{profile.office}</span>
-              <div className="director-profile-stats">
-                <span><strong>{departments.length}</strong>Departments</span>
-                <span><strong>{staff.length}</strong>Staff</span>
-              </div>
-              <Link to="/profile" className="director-profile-link"><Building2 size={13} /> Institute profile</Link>
-            </div>
-          </Card>
         </div>
       </div>
     </div>

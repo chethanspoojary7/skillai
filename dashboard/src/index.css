@@ -1439,7 +1439,7 @@ body { color: #17243b; }
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-areas:
-    "approvals approvals performance profile"
+    "approvals approvals performance performance"
     "tasks tasks sidepanels sidepanels";
   align-items: start;
   gap: 16px;
@@ -1448,7 +1448,6 @@ body { color: #17243b; }
 .director-secondary-column { display: contents; }
 .director-approval-panel { grid-area: approvals; }
 .director-performance-panel { grid-area: performance; }
-.director-profile-panel { grid-area: profile; }
 .director-task-panel { grid-area: tasks; }
 .director-side-panels { display: grid; grid-area: sidepanels; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 16px; }
 .director-grid-span-2 { grid-column: span 2; }
@@ -1504,30 +1503,6 @@ body { color: #17243b; }
 .director-activity-list { gap: 7px; margin-top: 10px; }
 .director-activity-list li > div { gap: 2px; }
 .director-activity-list li span:not(.activity-marker) { overflow-wrap: anywhere; }
-.director-profile-card { display: flex; min-width: 0; flex-direction: column; align-items: center; text-align: center; }
-.director-profile-avatar {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  margin: 1px 0 9px;
-  border-radius: 50%;
-  background: #edf1e8;
-  color: #416c5b;
-  font-size: 14px;
-  font-weight: 700;
-}
-.director-profile-name { max-width: 100%; overflow: hidden; color: #29332e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.director-profile-role { margin-top: 3px; color: #929a94; font-size: 9px; }
-.director-profile-detail { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; gap: 5px; margin-top: 9px; color: #77827a; font-size: 8px; }
-.director-profile-detail svg { flex: 0 0 13px; color: #62816e; }
-.director-profile-detail + .director-profile-detail { margin-top: 5px; }
-.director-profile-stats { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; padding-top: 10px; border-top: 1px solid #eff1ed; }
-.director-profile-stats span { display: flex; flex-direction: column; gap: 2px; color: #8a938d; font-size: 8px; }
-.director-profile-stats strong { color: #303a34; font-size: 15px; }
-.director-profile-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; color: #507b69; font-size: 9px; font-weight: 600; text-decoration: none; }
-.director-profile-link:hover { color: #315d50; }
-
 @media (max-width: 1100px) {
   .director-metrics { gap: 9px; }
   .director-metric { gap: 8px; padding-inline: 10px; }
@@ -1537,13 +1512,12 @@ body { color: #17243b; }
 @media (min-width: 901px) {
   .director-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .director-main-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "approvals approvals"
-      "performance profile"
-      "tasks tasks"
+      "performance tasks"
       "sidepanels sidepanels";
   }
   .director-grid-span-2 { grid-column: auto; }
@@ -1647,7 +1621,6 @@ body { color: #17243b; }
     grid-template-areas:
       "approvals"
       "performance"
-      "profile"
       "tasks"
       "sidepanels";
     gap: 12px;
@@ -1655,7 +1628,6 @@ body { color: #17243b; }
   .director-panel { padding: 14px !important; }
   .director-approval-panel { grid-area: approvals; }
   .director-performance-panel { grid-area: performance; }
-  .director-profile-panel { grid-area: profile; }
   .director-task-panel { grid-area: tasks; }
   .director-side-panels { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .director-table { min-width: 440px; }
@@ -1671,11 +1643,8 @@ body { color: #17243b; }
 .dark .dashboard-device.is-dashboard .device-search,
 .dark .dashboard-device.is-dashboard .global-search-results { background: #1d2925; color: #e5ece7; }
 .dark .topbar-greeting h1,
-.dark .director-metric-copy strong,
-.dark .director-profile-name,
-.dark .director-profile-stats strong { color: #e5ece7; }
+.dark .director-metric-copy strong { color: #e5ece7; }
 .dark .director-metric:last-child { background: #315545 !important; }
-.dark .director-profile-stats { border-color: #33423a; }
 
 /* Shared visual system for every non-dashboard screen. */
 .app-shell {

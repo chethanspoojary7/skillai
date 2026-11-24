@@ -6,7 +6,6 @@ import TasksPage from './pages/TasksPage'
 import PerformancePage from './pages/PerformancePage'
 import DepartmentsPage from './pages/DepartmentsPage'
 import NotificationsPage from './pages/NotificationsPage'
-import SettingsPage from './pages/SettingsPage'
 import ProfilePage from './pages/ProfilePage'
 export default function App() {
   return (
@@ -20,7 +19,6 @@ export default function App() {
         <Route path="/institute" element={<Navigate to="/" replace />} />
         <Route path="/departments" element={<DepartmentsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

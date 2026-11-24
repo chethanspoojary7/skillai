@@ -5,7 +5,7 @@ const KEY = 'idd-dashboard-v2'
 export interface Toast { id: number; kind: 'success' | 'error' | 'info'; text: string }
 interface State { approvals: Approval[]; dismissedApprovalIds: string[]; tasks: Task[]; staff: Staff[]; notifications: NotificationItem[]; activity: ActivityItem[]; settings: Settings; profile: Profile; authed: boolean }
 const defaultSettings: Settings = { instituteName: 'Institute of Applied Sciences', academicYear: '2026–27', reportingPeriod: 'Monthly', theme: 'light', sidebar: 'expanded', density: 'comfortable', notifyApprovals: true, notifyDeadlines: true, notifyOverdue: true, notifyPerformance: true }
-const defaultProfile: Profile = { name: 'Bavesh Suvarna', designation: 'Director', email: 'director@demo.institute', phone: '+91 98765 00000 (demo)', office: "Director's Office, Main Block" }
+const defaultProfile: Profile = { name: 'Bavesh', designation: 'Director', email: 'director@demo.institute', phone: '+91 98765 00000 (demo)', office: "Director's Office, Main Block" }
 function load(): State {
   try {
     const raw = localStorage.getItem(KEY)
@@ -26,7 +26,7 @@ function load(): State {
         p.approvals = [...savedApprovals, ...seedApprovals.filter(approval => !savedApprovalIds.has(approval.id))]
         p.tasks.forEach((task: Task & { milestones?: string[]; subtasks?: unknown }) => { delete task.milestones; delete task.subtasks })
         if (p.settings) delete p.settings.rolePreview
-        if (p.profile?.name === 'Dr. Rajesh Menon') p.profile.name = defaultProfile.name
+        if (p.profile?.name === 'Dr. Rajesh Menon' || p.profile?.name === 'Bavesh Suvarna') p.profile.name = defaultProfile.name
         const savedStaff = Array.isArray(p.staff) ? p.staff.map((person: Staff) => {
           const seed = seedStaff.find(item => item.id === person.id)
           if (!seed || person.name !== 'Dr. Ananya Rao') return person

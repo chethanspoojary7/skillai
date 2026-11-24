@@ -1,24 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  AlertTriangle, ArrowUpRight, BarChart3, CalendarDays, CheckSquare,
-  ClipboardList, Plus, TrendingUp,
+  AlertTriangle, ArrowUpRight, BarChart3, Building2, CalendarDays, CheckSquare,
+  ClipboardList, Mail, MapPin, Plus, TrendingUp,
 } from 'lucide-react'
-import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie,
-  PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from 'recharts'
 import { useApp } from '../store/AppContext'
-import { departments, events, monthlyTrend, staff } from '../data/seed'
+import { departments, events, staff } from '../data/seed'
 import { fmt, isOverdue, money } from '../utils'
-import { Badge, Btn, Card, DoubleClickAction, Progress, RecordRow, RecordSurface, priorityTone, statusTone } from '../components/ui'
+import { Badge, Card, DoubleClickAction, Progress, RecordRow, RecordSurface, priorityTone, statusTone } from '../components/ui'
 
-const chartColors = ['#347be0', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+const statusColors = ['#2f8074', '#91aa69', '#d69a62', '#8987ad', '#bd756e']
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 const dateOnly = (value: string) => new Date(`${value}T00:00:00`)
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 export default function DashboardPage() {
-  const { approvals, tasks, activity, profile, settings } = useApp()
+  const { approvals, tasks, activity, profile } = useApp()
   const navigate = useNavigate()
   const now = new Date()
   const today = startOfDay(now)
@@ -47,6 +43,9 @@ export default function DashboardPage() {
   })
   const achievement = departments.length
     ? Math.round(departments.reduce((sum, department) => sum + department.achievement, 0) / departments.length)
+    : 0
+  const achievementTarget = departments.length
+    ? Math.round(departments.reduce((sum, department) => sum + department.target, 0) / departments.length)
     : 0
   const completionRate = tasks.length
     ? Math.round(tasks.filter(task => task.status === 'Completed').length / tasks.length * 100)
@@ -77,19 +76,6 @@ export default function DashboardPage() {
 
   return (
     <div className="director-dashboard">
-      <header className="director-heading">
-        <div>
-          <span className="director-eyebrow">INSTITUTE OVERVIEW</span>
-          <h1>Welcome back, {profile.name}</h1>
-          <p>{settings.instituteName} <span>·</span> Academic year {settings.academicYear}</p>
-        </div>
-        <div className="director-actions">
-          <Btn onClick={() => navigate('/approvals')}><CheckSquare size={15} /> Review Approvals</Btn>
-          <Btn variant="secondary" onClick={() => navigate('/tasks?new=1')}><Plus size={15} /> Create Task</Btn>
-          <Btn variant="secondary" onClick={() => navigate('/performance')}><BarChart3 size={15} /> Performance</Btn>
-        </div>
-      </header>
-
       <section className="director-metrics" aria-label="Director dashboard metrics">
         {metrics.map(metric => (
           <Link to={metric.to} className="director-metric" key={metric.label}>
@@ -139,7 +125,10 @@ export default function DashboardPage() {
           <Card className="director-panel director-task-panel">
             <div className="director-panel-heading">
               <div><h2>Task summary</h2><p>Current workload and deadlines</p></div>
-              <Link to="/tasks" className="director-view-link">Task management <ArrowUpRight size={13} /></Link>
+              <div className="director-task-heading-actions">
+                <Link to="/tasks?new=1" className="director-view-link"><Plus size={13} /> Create task</Link>
+                <Link to="/tasks" className="director-view-link">Task management <ArrowUpRight size={13} /></Link>
+              </div>
             </div>
             <div className="task-count-grid">
               <Link to="/tasks"><span>Due today</span><strong>{dueToday.length}</strong></Link>
@@ -177,19 +166,6 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="director-panel director-activity-panel">
-            <div className="director-panel-heading">
-              <div><h2>Recent activity</h2><p>Latest institute updates</p></div>
-            </div>
-            <ul className="director-activity-list">
-              {activity.slice(0, 4).map(item => (
-                <li key={item.id}>
-                  <span className="activity-marker" />
-                  <div><strong>{item.actor}</strong><span>{item.action.toLowerCase()} · {item.recordId}</span><small>{item.description}</small></div>
-                </li>
-              ))}
-            </ul>
-          </Card>
         </div>
 
         <div className="director-secondary-column">
@@ -203,49 +179,84 @@ export default function DashboardPage() {
               <div><strong>{completionRate}%</strong><span>Task completion</span></div>
               <div><strong>{onTimeRate}%</strong><span>On-time completion</span></div>
             </div>
-            <div className="director-chart director-line-chart">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyTrend} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
-                  <CartesianGrid stroke="#ececf2" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#858796' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[70, 95]} tick={{ fontSize: 9, fill: '#858796' }} axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Line type="monotone" dataKey="actual" name="Actual" stroke="#347be0" strokeWidth={2.5} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="target" name="Target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="performance-target">
+              <div className="performance-target-heading">
+                <div><strong>Institute achievement</strong><span>Average across departments</span></div>
+                <strong>{achievement}%</strong>
+              </div>
+              <div
+                className="performance-target-track"
+                role="img"
+                aria-label={`${achievement}% achievement against a ${achievementTarget}% target`}
+              >
+                <span style={{ width: `${Math.min(100, achievement)}%` }} />
+                <i style={{ left: `${Math.min(100, achievementTarget)}%` }} />
+              </div>
+              <div className="performance-target-labels"><span>Current achievement</span><span>Target {achievementTarget}%</span></div>
             </div>
-            <h3 className="director-chart-title">Task status distribution</h3>
-            <div className="director-chart director-status-chart">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={statusCounts} dataKey="value" nameKey="name" innerRadius="57%" outerRadius="82%" paddingAngle={3}>
-                    {statusCounts.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 9 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <h3 className="director-chart-title">Task status</h3>
+            <ul className="status-distribution-list">
+              {statusCounts.map((status, index) => {
+                const share = tasks.length ? Math.round(status.value / tasks.length * 100) : 0
+                return (
+                  <li className={`status-distribution-item tone-${index % statusColors.length}`} key={status.name}>
+                    <div className="status-distribution-label"><span>{status.name}</span><strong>{status.value}</strong></div>
+                    <div className="status-distribution-track"><span style={{ width: `${share}%` }} /></div>
+                  </li>
+                )
+              })}
+              {statusCounts.length === 0 && <li className="status-distribution-empty">No tasks to report yet.</li>}
+            </ul>
           </Card>
 
-          <Card className="director-panel director-events-panel">
-            <div className="director-panel-heading">
-              <div><h2>Upcoming events & deadlines</h2><p>Next on the institute calendar</p></div>
-              <CalendarDays size={16} className="director-muted-icon" />
+          <div className="director-side-panels">
+            <Card className="director-panel director-events-panel">
+              <div className="director-panel-heading">
+                <div><h2>Upcoming events & deadlines</h2><p>Next on the institute calendar</p></div>
+                <CalendarDays size={16} className="director-muted-icon" />
+              </div>
+              <ul className="director-events-list">
+                {[...events].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map((event, index) => (
+                  <li key={event.title}>
+                    <RecordSurface label={`Open task schedule for ${event.title}`} onActivate={() => navigate('/tasks')} className="dashboard-event-action">
+                    <span className={`event-date-tile event-${index % 3}`}><strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString('en-IN', { month: 'short' })}</small></span>
+                    <span className="dashboard-event-copy"><strong>{event.title}</strong><span>{fmt(event.date)} · {event.time}</span></span>
+                    </RecordSurface>
+                  </li>
+                ))}
+              </ul>
+              <p className="director-demo-note">Department budget: {money(departments[0]?.budget ?? 0)} · Spent: {money(departments[0]?.spent ?? 0)}</p>
+            </Card>
+
+            <Card className="director-panel director-activity-panel">
+              <div className="director-panel-heading">
+                <div><h2>Recent activity</h2><p>Latest institute updates</p></div>
+              </div>
+              <ul className="director-activity-list">
+                {activity.slice(0, 2).map(item => (
+                  <li key={item.id}>
+                    <span className="activity-marker" />
+                    <div><strong>{item.actor} · {item.action.toLowerCase()}</strong><span>{item.recordId} · {item.description}</span></div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+          <Card className="director-panel director-profile-panel">
+            <div className="director-profile-card">
+              <span className="director-profile-avatar" aria-hidden="true">
+                {profile.name.split(' ').map(part => part[0]).slice(0, 2).join('')}
+              </span>
+              <strong className="director-profile-name">{profile.name}</strong>
+              <span className="director-profile-role">{profile.designation}</span>
+              <span className="director-profile-detail"><Mail size={13} />{profile.email}</span>
+              <span className="director-profile-detail"><MapPin size={13} />{profile.office}</span>
+              <div className="director-profile-stats">
+                <span><strong>{departments.length}</strong>Departments</span>
+                <span><strong>{staff.length}</strong>Staff</span>
+              </div>
+              <Link to="/profile" className="director-profile-link"><Building2 size={13} /> Institute profile</Link>
             </div>
-            <ul className="director-events-list">
-              {[...events].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map((event, index) => (
-                <li key={event.title}>
-                  <RecordSurface label={`Open task schedule for ${event.title}`} onActivate={() => navigate('/tasks')} className="dashboard-event-action">
-                  <span className={`event-date-tile event-${index % 3}`}><strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString('en-IN', { month: 'short' })}</small></span>
-                  <span className="dashboard-event-copy"><strong>{event.title}</strong><span>{fmt(event.date)} · {event.time}</span></span>
-                  </RecordSurface>
-                </li>
-              ))}
-            </ul>
-            <p className="director-demo-note">Department budget: {money(departments[0]?.budget ?? 0)} · Spent: {money(departments[0]?.spent ?? 0)}</p>
           </Card>
         </div>
       </div>

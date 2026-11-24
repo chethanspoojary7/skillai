@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Activity, Bell, Building2, CheckSquare, ClipboardList, LayoutDashboard,
-  PanelLeftClose, PanelLeftOpen, Search, Settings, UserRound, Users,
+  PanelLeftClose, PanelLeftOpen, Search, UserRound, Users,
 } from 'lucide-react'
 import { useApp } from '../store/AppContext'
 import AnimatedList from './AnimatedList'
@@ -21,7 +21,7 @@ const TITLES: Record<string, string> = {
   '/': 'Dashboard', '/approvals': 'Approvals', '/tasks': 'Schedule',
   '/performance': 'Performance', '/departments': 'Employees',
   '/notifications': 'Notifications',
-  '/settings': 'Settings', '/profile': 'Profile',
+  '/profile': 'Profile',
   '/performance/overview': 'Performance · Overview',
   '/performance/academic': 'Performance · Academic',
   '/performance/finance': 'Performance · Finance',
@@ -33,12 +33,12 @@ const TITLES: Record<string, string> = {
 export default function Layout() {
   const { notifications, profile, settings, saveSettings, staff, tasks, toasts, dismissToast } = useApp()
   const [profileOpen, setProfileOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 620px)').matches)
   const location = useLocation()
   const navigate = useNavigate()
+  const isDashboard = location.pathname === '/'
   const unread = notifications.filter(item => !item.read).length
   const sidebarCollapsed = settings.sidebar === 'collapsed'
   const title = TITLES[location.pathname] || 'Dashboard'
@@ -76,16 +76,15 @@ export default function Layout() {
   }, [searchQuery, staff, tasks])
   const openSearchResult = (to: string) => {
     navigate(to)
-    setSearchOpen(false)
     setSearchQuery('')
   }
 
   return (
     <div className={`app-shell${settings.density === 'compact' ? ' density-compact' : ''}`}>
-      <div className={`dashboard-device${sidebarCollapsed ? ' sidebar-collapsed' : ''}${mobileNavOpen ? ' mobile-nav-open' : ''}`}>
+      <div className={`dashboard-device${sidebarCollapsed ? ' sidebar-collapsed' : ''}${mobileNavOpen ? ' mobile-nav-open' : ''}${isDashboard ? ' is-dashboard' : ''}`}>
         {mobileNavOpen && <button type="button" className="mobile-nav-backdrop" aria-label="Close navigation panel" onClick={() => setMobileNavOpen(false)} />}
         <aside id="main-navigation" className="device-sidebar" aria-label="Main navigation" aria-hidden={isMobile && !mobileNavOpen}>
-          <Link to="/" className="sidebar-brand">
+          <Link to="/" className="sidebar-brand" aria-label="Director’s Office home" title="Director’s Office">
             <span className="sidebar-brand-icon"><Building2 size={18} /></span>
             <span className="sidebar-brand-copy"><strong>Director’s Office</strong><small>Institute Management</small></span>
           </Link>
@@ -107,6 +106,8 @@ export default function Layout() {
                     <NavLink
                       to={item.to}
                       end={item.to === '/'}
+                      aria-label={item.label}
+                      title={item.label}
                       className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
                       onClick={() => setMobileNavOpen(false)}
                     >
@@ -119,19 +120,7 @@ export default function Layout() {
             ))}
           </nav>
           <div className="sidebar-bottom">
-            <AnimatedList
-              items={[{ to: '/settings', label: 'Settings', icon: Settings }]}
-              ariaLabel="Settings navigation"
-              listRole="list"
-              itemRole="listitem"
-              selectOnClick={false}
-              enableArrowNavigation={false}
-              animation="pop"
-              stagger={0.05}
-              className="sidebar-animated-links"
-              renderItem={item => <NavLink to={item.to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={() => setMobileNavOpen(false)}><item.icon size={16} /><span>{item.label}</span></NavLink>}
-            />
-            <Link to="/profile" className="sidebar-profile" onClick={() => setMobileNavOpen(false)}>
+            <Link to="/profile" className="sidebar-profile" aria-label={`${profile.name}, ${profile.designation} profile`} title="Profile" onClick={() => setMobileNavOpen(false)}>
               <span className="sidebar-profile-avatar">{profile.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>
               <span className="sidebar-profile-copy"><strong>{profile.name}</strong><small>{profile.designation}</small></span>
             </Link>
@@ -139,22 +128,25 @@ export default function Layout() {
         </aside>
 
         <div className="device-workspace">
-          <header className="device-topbar">
+          <header className={`device-topbar${isDashboard ? ' dashboard-topbar' : ''}`}>
             <button type="button" className="top-icon sidebar-toggle" title={isMobile ? (mobileNavOpen ? 'Close navigation panel' : 'Open navigation panel') : (sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel')} aria-label={isMobile ? (mobileNavOpen ? 'Close navigation panel' : 'Open navigation panel') : (sidebarCollapsed ? 'Open navigation panel' : 'Close navigation panel')} aria-controls="main-navigation" aria-expanded={isMobile ? mobileNavOpen : !sidebarCollapsed} onClick={() => isMobile ? setMobileNavOpen(open => !open) : saveSettings({ ...settings, sidebar: sidebarCollapsed ? 'expanded' : 'collapsed' })}>
               {(isMobile ? mobileNavOpen : !sidebarCollapsed) ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
             </button>
-            <h1 className="topbar-title">{title}</h1>
-            {searchOpen && <div className="global-search">
-              <input autoFocus className="device-search" placeholder="Search staff and tasks" aria-label="Search staff and tasks" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} onKeyDown={event => {
-                if (event.key === 'Escape') { setSearchOpen(false); setSearchQuery('') }
+            {isDashboard ? <div className="topbar-greeting">
+              <h1>Hello, {profile.name}!</h1>
+              <p>{settings.instituteName} <span>·</span> Academic year {settings.academicYear}</p>
+            </div> : <h1 className="topbar-title">{title}</h1>}
+            <div className="global-search">
+              <Search size={16} aria-hidden="true" />
+              <input className="device-search" placeholder="Search staff and tasks" aria-label="Search staff and tasks" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} onKeyDown={event => {
+                if (event.key === 'Escape') setSearchQuery('')
                 if (event.key === 'Enter' && searchResults[0]) openSearchResult(searchResults[0].to)
               }} />
               {searchQuery.trim() && <div className="global-search-results" role="listbox" aria-label="Search results">
                 {searchResults.length ? searchResults.map(result => <button key={result.key} type="button" role="option" onClick={() => openSearchResult(result.to)}><span>{result.title}</span><small>{result.detail}</small></button>) : <p>No matching staff or tasks.</p>}
               </div>}
-            </div>}
+            </div>
             <div className="top-actions">
-              <button type="button" className="top-icon" title="Search" aria-label="Search" onClick={() => setSearchOpen(!searchOpen)}><Search size={15} /></button>
               <Link to="/notifications" className="top-icon notification-action" title="Notifications" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
                 <Bell size={15} />{unread > 0 && <span className="notification-dot" />}
               </Link>
@@ -164,12 +156,11 @@ export default function Layout() {
                 </button>
                 {profileOpen && <div className="profile-menu">
                   <Link to="/profile" onClick={() => setProfileOpen(false)}><UserRound size={14} /> Profile</Link>
-                  <Link to="/settings" onClick={() => setProfileOpen(false)}><Settings size={14} /> Settings</Link>
                 </div>}
               </div>
             </div>
           </header>
-          <main className="device-content" aria-label={title}>
+          <main className={`device-content${isDashboard ? ' dashboard-content' : ''}`} aria-label={title}>
             <Outlet />
           </main>
         </div>

@@ -32,7 +32,7 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
   return <div className={`app-card rounded-xl border border-slate-100 bg-white shadow-[0_2px_10px_rgba(27,65,123,0.05)] dark:border-slate-700 dark:bg-slate-900 ${className}`}>{children}</div>
 }
 export function Badge({ text, tone }: { text: string; tone: 'green' | 'amber' | 'red' | 'blue' | 'slate' | 'purple' }) {
-  const m: Record<string, string> = { green: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300', amber: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300', red: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300', blue: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300', slate: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-800 dark:text-slate-300', purple: 'bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/30 dark:text-violet-300' }
+  const m: Record<string, string> = { green: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300', amber: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300', red: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300', blue: 'bg-[#eef3ef] text-[#426b58] ring-[#d3e2d7] dark:bg-[#22372d] dark:text-[#b6d2c0]', slate: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-800 dark:text-slate-300', purple: 'bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/30 dark:text-violet-300' }
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${m[tone]}`}>{text}</span>
 }
 export function statusTone(s: string): 'green' | 'amber' | 'red' | 'blue' | 'slate' | 'purple' {
@@ -45,13 +45,13 @@ export function statusTone(s: string): 'green' | 'amber' | 'red' | 'blue' | 'sla
 export function priorityTone(p: Priority): 'red' | 'amber' | 'blue' | 'slate' {
   return p === 'Critical' ? 'red' : p === 'High' ? 'amber' : p === 'Medium' ? 'blue' : 'slate'
 }
-export function Progress({ value, tone = 'bg-blue-600' }: { value: number; tone?: string }) {
+export function Progress({ value, tone = 'bg-[#436E5E]' }: { value: number; tone?: string }) {
   return <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} /></div>
 }
 export function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return <label className="block text-sm"><span className="mb-1 block font-medium text-slate-700 dark:text-slate-200">{label}</span>{children}{error && <span className="mt-1 block text-xs text-red-600">{error}</span>}</label>
 }
-export const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:ring-blue-900'
+export const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-[#6f9986] focus:ring-2 focus:ring-[#e5eee8] dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:focus:ring-emerald-900'
 export interface DropdownOption { value: string; label: string }
 export function DropdownSelect({ value, onChange, options, ariaLabel, className = '', variant = 'default', disabled = false }: { value: string; onChange: (value: string) => void; options: DropdownOption[]; ariaLabel: string; className?: string; variant?: 'default' | 'compact'; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -143,13 +143,13 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
   )
 }
 export function Btn({ children, onClick, variant = 'primary', className = '', type = 'button', disabled }: { children: React.ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; className?: string; type?: 'button' | 'submit'; disabled?: boolean }) {
-  const v = variant === 'primary' ? 'bg-[#2863C5] text-white hover:bg-[#1F56B0] disabled:opacity-50' : variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' : variant === 'ghost' ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-blue-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
-  return <button type={type} disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-400 ${v} ${className}`}>{children}</button>
+  const v = variant === 'primary' ? 'bg-[#436E5E] text-white hover:bg-[#365B4E] disabled:opacity-50' : variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' : variant === 'ghost' ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-[#f1f5f0] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+  return <button type={type} disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#9cb5a5] ${v} ${className}`}>{children}</button>
 }
 export function DoubleClickAction({ children, onActivate, className = '', label }: { children: React.ReactNode; onActivate: () => void; className?: string; label: string }) {
   return <button type="button" aria-label={label} onDoubleClick={onActivate} onKeyDown={event => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onActivate() }
-  }} className={`cursor-default rounded-sm text-left text-inherit focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${className}`}>{children}</button>
+  }} className={`cursor-default rounded-sm text-left text-inherit focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6f9986] ${className}`}>{children}</button>
 }
 export function RecordRow({ children, onActivate, label, className = '' }: { children: React.ReactNode; onActivate?: () => void; label: string; className?: string }) {
   const activateFromKeyboard = (event: React.KeyboardEvent<HTMLTableRowElement>) => {

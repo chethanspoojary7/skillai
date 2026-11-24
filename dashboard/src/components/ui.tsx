@@ -130,7 +130,7 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
           animateOnce={false}
           stagger={0.05}
           showGradients
-          accentColor="var(--purple, #3978df)"
+          accentColor="#436e5e"
           className="dropdown-select-options"
           maxHeight={position.maxHeight - 12}
           onItemSelect={(_, index) => setActiveIndex(index)}
@@ -143,7 +143,7 @@ export function DropdownSelect({ value, onChange, options, ariaLabel, className 
   )
 }
 export function Btn({ children, onClick, variant = 'primary', className = '', type = 'button', disabled }: { children: React.ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; className?: string; type?: 'button' | 'submit'; disabled?: boolean }) {
-  const v = variant === 'primary' ? 'bg-[#436E5E] text-white hover:bg-[#365B4E] disabled:opacity-50' : variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' : variant === 'ghost' ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-[#f1f5f0] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+  const v = variant === 'primary' ? 'bg-[#436E5E] text-white hover:bg-[#365B4E] disabled:opacity-50' : variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' : variant === 'ghost' ? 'text-[#52645a] hover:bg-[#edf3ee] hover:text-[#315d50] dark:text-[#c0d0c6] dark:hover:bg-[#273a31]' : 'border border-[#dce5df] bg-white text-[#40574a] hover:bg-[#edf3ee] hover:text-[#315d50] dark:border-[#33483d] dark:bg-[#1d2925] dark:text-[#d4e2d9] dark:hover:bg-[#273a31]'
   return <button type={type} disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#9cb5a5] ${v} ${className}`}>{children}</button>
 }
 export function DoubleClickAction({ children, onActivate, className = '', label }: { children: React.ReactNode; onActivate: () => void; className?: string; label: string }) {

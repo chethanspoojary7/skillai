@@ -64,9 +64,9 @@
 
 :global(.dropdown-select-options [role="option"]) { cursor: pointer; }
 :global(.dropdown-select-options [role="option"]:hover .dropdown-select-option),
-:global(.dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #eaf2ff; color: #215db3; }
+:global(.dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #e8f0eb; color: #315d50; }
 :global(.dark .dropdown-select-options [role="option"]:hover .dropdown-select-option),
-:global(.dark .dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #1b3151; color: #a9ccff; }
+:global(.dark .dropdown-select-options [role="option"][aria-selected="true"] .dropdown-select-option) { background: #273a31; color: #b7d5c1; }
 :global(.sidebar-animated-links) { max-height: none; overflow: visible; scrollbar-width: none; }
 :global(.sidebar-animated-links::-webkit-scrollbar) { display: none; }
 :global(.sidebar-animated-links > [role="listitem"]) { width: 100%; }
